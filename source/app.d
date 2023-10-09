@@ -20,11 +20,20 @@ void main(string[] args)
     auto file = cast(ubyte[])read(path);
     auto cpu = Cpu(file);
 
-    while (cpu.pc < cpu.code.length)
+    while (true)
     {
         auto inst = cpu.fetch();
-        cpu.execute(inst);
+
         cpu.pc += 4;
+
+        // break on unknown instruction/error
+        if (!cpu.execute(inst))
+            break;
+
+        // avoid infinite loops
+        if (cpu.pc == 0)
+            break;
     }
+
     cpu.dumpRegisters();
 }
