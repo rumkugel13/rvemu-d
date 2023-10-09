@@ -1,4 +1,16 @@
 {
 	"name": "rvemu",
-	"buildOptions-windows": ["debugInfoC"]
+	"buildOptions-windows": ["debugInfoC"],
+	"configurations": [
+		{
+			"name" : "application",
+			"targetType": "executable"
+		},
+		{
+			"name" : "unittest",
+			"targetType": "library",
+			"sourcePaths": ["test/"],
+			"excludedSourceFiles": ["source/app.d"]
+		}
+	]
 }

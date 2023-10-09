@@ -143,7 +143,7 @@ struct Cpu
             break;
             default:
             {
-                writeln("Not implemented (yet): Opcode %d", opcode);
+                writeln("Unknown Opcode: ", opcode);
                 return false;
             }
         }
