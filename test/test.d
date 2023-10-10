@@ -207,3 +207,14 @@ unittest
 
     run("sd", data, expected);
 }
+
+unittest
+{
+    ubyte[] data = [
+        0x37, 0x28, 0x00, 0x00, // lui x16, 2
+    ];
+
+    ulong[ubyte] expected = [16: 8192];
+
+    run("lui", data, expected);
+}

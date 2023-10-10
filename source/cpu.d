@@ -152,6 +152,13 @@ struct Cpu
                 regs[rd] = regs[rs1] + regs[rs2];
             } 
             break;
+
+            case lui:
+            {
+                auto imm = cast(long)(cast(int)(inst & 0xffff_f000));
+                regs[rd] = imm;
+            }
+            break;
             default:
             {
                 writeln("Unknown Opcode: ", opcode);
