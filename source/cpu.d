@@ -378,7 +378,7 @@ struct Cpu
 
             default:
             {
-                writeln(format("Unknown Opcode: 0x%02x", opcode));
+                writeln(format("Unknown Opcode: 0x%02x in Instruction 0x%08x at Address 0x%08x", opcode, inst, pc));
                 return 0;
             }
         }
