@@ -168,9 +168,28 @@ struct Cpu
                 return pc;
             }
 
+            case jal:
+            {
+                regs[rd] = pc + 4;
+                auto imm = cast(long)cast(int)(
+                    ((inst & 0x8000_0000) >>> 11) |
+                    (inst & 0xff000) |
+                    ((inst & 0x80000) >>> 9) |
+                    ((inst & 0x3ff00000) >>> 20));
+                return pc + imm;
+            }
+            case jalr:
+            {
+                regs[rd] = pc + 4;
+                auto imm = cast(long)cast(int)(inst >>> 20);
+                imm += regs[rs1];
+                imm &= ~0x1;
+                return pc + imm;
+            }
+
             default:
             {
-                writeln("Unknown Opcode: ", opcode);
+                writeln(format("Unknown Opcode: 0x%02x", opcode));
                 return 0;
             }
         }

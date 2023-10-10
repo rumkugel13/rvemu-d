@@ -5,7 +5,7 @@ import std.string : format;
 
 import cpu, dram;
 
-static void run(string name, ubyte[] data, ulong[ubyte] expected)
+static void run(string name, ubyte[] data, ulong[ubyte] regs, ulong pc = 0)
 {
     writeln("Testing ", name);
     Cpu cpu = Cpu(data);
@@ -19,6 +19,7 @@ static void run(string name, ubyte[] data, ulong[ubyte] expected)
             break;
 
         auto newpc = cpu.execute(inst);
+        if (newpc == 0) break;
         cpu.pc = newpc;
 
         // avoid infinite loops / break on error
@@ -26,10 +27,13 @@ static void run(string name, ubyte[] data, ulong[ubyte] expected)
             break;
     }
 
-    foreach (reg, val; expected)
+    foreach (reg, val; regs)
     {
         assert(cpu.regs[reg] == val, format("Register x%d expected: 0x%x, actual: 0x%x", reg, val, cpu.regs[reg]));
     }
+    
+    if(pc)
+        assert(pc == cpu.pc, format("Program counter expected: 0x%x, actual: 0x%x", pc, cpu.pc));
 }
 
 // test cases from https://github.com/d0iasm/rvemu/blob/main/tests/rv32i.rs
@@ -225,4 +229,30 @@ unittest
     ulong[ubyte] expected = [16: 0x2000 + DRAM_BASE];
 
     run("auipc", data, expected);
+}
+
+unittest
+{
+    ubyte[] data = [
+        0x13, 0x08, 0x30, 0x00, // addi x16, x0, 3
+        0x93, 0x08, 0x50, 0x00, // addi x17, x0, 5
+        0x6f, 0x09, 0xc0, 0x00, // jal x18, 12
+    ];
+
+    ulong[ubyte] expected = [16: 3, 17: 5, 18: 12 + DRAM_BASE];
+
+    run("jal", data, expected, 12 + DRAM_BASE + 8);
+}
+
+unittest
+{
+    ubyte[] data = [
+        0x13, 0x08, 0x30, 0x00, // addi x16, x0, 3
+        0x93, 0x08, 0x50, 0x00, // addi x17, x0, 5
+        0x67, 0x09, 0xc0, 0x02, // jalr x18, x0, 44
+    ];
+
+    ulong[ubyte] expected = [16: 3, 17: 5, 18: 12 + DRAM_BASE];
+
+    run("jalr", data, expected, 44 + DRAM_BASE + 8);
 }

@@ -8,6 +8,8 @@ enum Opcode : uint
     store = 0x23,
     lui = 0x37,
     auipc = 0x17,
+    jal = 0x6f,
+    jalr = 0x67,
 }
 
 enum Funct3 : uint
