@@ -77,7 +77,7 @@ struct Cpu
         {
             case load:
             {
-                auto imm = cast(ulong)(cast(long)(inst) >> 20);
+                auto imm = cast(ulong)cast(long)(cast(int)(inst) >> 20);
                 auto addr = regs[rs1] + imm;
                 with(Funct3)
                 switch (funct3)
