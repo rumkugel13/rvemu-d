@@ -10,6 +10,7 @@ enum Opcode : uint
     auipc = 0x17,
     jal = 0x6f,
     jalr = 0x67,
+    branch = 0x63,
 }
 
 enum Funct3 : uint
@@ -26,4 +27,11 @@ enum Funct3 : uint
     sh = 0x1,
     sw = 0x2,
     sd = 0x3,
+
+    beq = 0x0,
+    bne = 0x1,
+    blt = 0x4,
+    bge = 0x5,
+    bltu = 0x6,
+    bgeu = 0x7,
 }

@@ -256,3 +256,81 @@ unittest
 
     run("jalr", data, expected, 44 + DRAM_BASE + 8);
 }
+
+unittest
+{
+    ubyte[] data = [
+        0x13, 0x08, 0x30, 0x00, // addi x16, x0, 3
+        0x93, 0x08, 0x30, 0x00, // addi x17, x0, 3
+        0x63, 0x06, 0x18, 0x01, // beq x16, x17, 12
+    ];
+
+    ulong[ubyte] expected = [16: 3, 17: 3];
+
+    run("beq", data, expected, 12 + DRAM_BASE + 8);
+}
+
+unittest
+{
+    ubyte[] data = [
+        0x13, 0x08, 0x30, 0x00, // addi x16, x0, 3
+        0x93, 0x08, 0x50, 0x00, // addi x17, x0, 5
+        0x63, 0x16, 0x18, 0x01, // bne x16, x17, 12
+    ];
+
+    ulong[ubyte] expected = [16: 3, 17: 5];
+
+    run("bne", data, expected, 12 + DRAM_BASE + 8);
+}
+
+unittest
+{
+    ubyte[] data = [
+        0x13, 0x08, 0xd0, 0xff, // addi x16, x0, -3
+        0x93, 0x08, 0x50, 0x00, // addi x17, x0, 5
+        0x63, 0x46, 0x18, 0x01, // blt x16, x17, 12
+    ];
+
+    ulong[ubyte] expected = [16: cast(ulong)-3L, 17: 5];
+
+    run("blt", data, expected, 12 + DRAM_BASE + 8);
+}
+
+unittest
+{
+    ubyte[] data = [
+        0x13, 0x08, 0xd0, 0xff, // addi x16, x0, -3
+        0x93, 0x08, 0xd0, 0xff, // addi x17, x0, -3
+        0x63, 0x56, 0x18, 0x01, // bge x16, x17, 12
+    ];
+
+    ulong[ubyte] expected = [16: cast(ulong)-3L, 17: cast(ulong)-3L];
+
+    run("bge", data, expected, 12 + DRAM_BASE + 8);
+}
+
+unittest
+{
+    ubyte[] data = [
+        0x13, 0x08, 0x30, 0x00, // addi x16, x0, 3
+        0x93, 0x08, 0x50, 0x00, // addi x17, x0, 5
+        0x63, 0x66, 0x18, 0x01, // bltu x16, x17, 12
+    ];
+
+    ulong[ubyte] expected = [16: 3, 17: 5];
+
+    run("bltu", data, expected, 12 + DRAM_BASE + 8);
+}
+
+unittest
+{
+    ubyte[] data = [
+        0x13, 0x08, 0x50, 0x00, // addi x16, x0, 5
+        0x93, 0x08, 0x30, 0x00, // addi x17, x0, 3
+        0x63, 0x76, 0x18, 0x01, // bgeu x16, x17, 12
+    ];
+
+    ulong[ubyte] expected = [16: 5, 17: 3];
+
+    run("bgeu", data, expected, 12 + DRAM_BASE + 8);
+}

@@ -187,6 +187,48 @@ struct Cpu
                 return pc + imm;
             }
 
+            case branch:
+            {
+                auto imm = cast(long)cast(int)(
+                    ((inst & 0x8000_0000) >>> 19) |
+                    ((inst & 0x7e00_0000) >>> 20) |
+                    ((inst & 0xf00) >>> 7) |
+                    ((inst & 0x80) << 4));
+                
+                with(Funct3)
+                switch (funct3)
+                {
+                    case beq:
+                        if (regs[rs1] == regs[rs2])
+                            return pc + imm;
+                        break;
+                    case bne:
+                        if (regs[rs1] != regs[rs2])
+                            return pc + imm;
+                        break;
+                    case blt:
+                        if (cast(long)regs[rs1] < cast(long)regs[rs2])
+                            return pc + imm;
+                        break;
+                    case bge:
+                        if (cast(long)regs[rs1] >= cast(long)regs[rs2])
+                            return pc + imm;
+                        break;
+                    case bltu:
+                        if (cast(ulong)regs[rs1] < cast(ulong)regs[rs2])
+                            return pc + imm;
+                        break;
+                    case bgeu:
+                        if (cast(ulong)regs[rs1] >= cast(ulong)regs[rs2])
+                            return pc + imm;
+                        break;
+
+                    default:
+                        break;
+                }
+                return pc + 4;
+            }
+
             default:
             {
                 writeln(format("Unknown Opcode: 0x%02x", opcode));
