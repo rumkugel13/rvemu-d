@@ -352,6 +352,25 @@ struct Cpu
                 return pc + 4;
             }
 
+            case fence:
+            {
+                // Not implemented, no out-of-order execution
+                break;
+            }
+
+            case system:
+            {
+                // if (inst & (1<<20))
+                // {
+                //     // EBREAK
+                // }
+                // else
+                // {
+                //     // ECALL
+                // }
+                break;
+            }
+
             default:
             {
                 writeln(format("Unknown Opcode: 0x%02x", opcode));

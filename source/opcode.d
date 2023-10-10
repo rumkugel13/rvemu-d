@@ -13,6 +13,8 @@ enum Opcode : uint
     jal = 0x6f,
     jalr = 0x67,
     branch = 0x63,
+    fence = 0xff,
+    system = 0x73,
 }
 
 enum Funct3 : uint
