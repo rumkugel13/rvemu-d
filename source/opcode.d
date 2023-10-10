@@ -2,7 +2,7 @@ module opcode;
 
 enum Opcode : uint
 {
-    addi = 0x13,
+    opimm = 0x13,
     op = 0x33,
     load = 0x03,
     store = 0x23,
@@ -45,6 +45,16 @@ enum Funct3 : uint
     sra = 0x5,
     or = 0x6,
     and = 0x7,
+
+    addi = 0x0,
+    slti = 0x2,
+    sltiu = 0x3,
+    xori = 0x4,
+    ori = 0x6,
+    andi = 0x7,
+    slli = 0x1,
+    srli = 0x5,
+    srai = 0x5,
 }
 
 enum Funct7 : uint
@@ -53,4 +63,8 @@ enum Funct7 : uint
     sub = 0x20,
     srl = 0x0,
     sra = 0x20,
+
+    slli = 0x0,
+    srli = 0x0,
+    srai = 0x20,
 }

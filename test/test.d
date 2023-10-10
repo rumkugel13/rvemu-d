@@ -52,6 +52,102 @@ unittest
 unittest
 {
     ubyte[] data = [
+        0x13, 0x08, 0xb0, 0xff, // addi x16 x0, -5
+        0x93, 0x28, 0xe8, 0xff, // slti x17, x16, -2
+    ];
+
+    ulong[ubyte] expected = [16: cast(ulong)-5L, 17: 1];
+
+    run("slti", data, expected);
+}
+
+unittest
+{
+    ubyte[] data = [
+        0x13, 0x08, 0x20, 0x00, // addi x16, x0, 2
+        0x93, 0x38, 0x58, 0x00, // sltiu, x17, x16, 5
+    ];
+
+    ulong[ubyte] expected = [16: 2, 17: 1];
+
+    run("sltiu", data, expected);
+}
+
+unittest
+{
+    ubyte[] data = [
+        0x13, 0x08, 0x30, 0x00, // addi x16, x0, 3
+        0x93, 0x48, 0x68, 0x00, // xori, x17, x16, 6
+    ];
+
+    ulong[ubyte] expected = [16: 3, 17: 5];
+
+    run("xori", data, expected);
+}
+
+unittest
+{
+    ubyte[] data = [
+        0x13, 0x08, 0x30, 0x00, // addi x16, x0, 3
+        0x93, 0x68, 0x68, 0x00, // ori, x17, x16, 6
+    ];
+
+    ulong[ubyte] expected = [16: 3, 17: 7];
+
+    run("ori", data, expected);
+}
+
+unittest
+{
+    ubyte[] data = [
+        0x13, 0x08, 0x40, 0x00, // addi x16, x0, 4
+        0x93, 0x78, 0x78, 0x00, // andi, x17, x16, 7
+    ];
+
+    ulong[ubyte] expected = [16: 4, 17: 4];
+
+    run("andi", data, expected);
+}
+
+unittest
+{
+    ubyte[] data = [
+        0x13, 0x08, 0x20, 0x00, // addi x16 x0, 2
+        0x93, 0x18, 0x38, 0x00, // slli x17, x16, 3
+    ];
+
+    ulong[ubyte] expected = [16: 2, 17: 16];
+
+    run("slli", data, expected);
+}
+
+unittest
+{
+    ubyte[] data = [
+        0x13, 0x08, 0x80, 0x00, // addi x16, x0, 8
+        0x93, 0x58, 0x28, 0x00, // srli x17, x16, 2
+    ];
+
+    ulong[ubyte] expected = [16: 8, 17: 2];
+
+    run("srli", data, expected);
+}
+
+unittest
+{
+    ubyte[] data = [
+        0x13, 0x08, 0x80, 0xff, // addi x16, x0, -8
+        0x93, 0x58, 0x28, 0x40, // srai x17, x16, 2
+    ];
+
+    ulong[ubyte] expected = [16: cast(ulong)-8L, 17: cast(ulong)-2L];
+
+    run("srai", data, expected);
+}
+
+unittest
+{
+    ubyte[] data = [
         0x93, 0x01, 0x50, 0x00, // addi x3, x0, 5
         0x13, 0x02, 0x60, 0x00, // addi x4, x0, 6
         0x33, 0x81, 0x41, 0x00, // add x2, x3, x4

@@ -142,10 +142,42 @@ struct Cpu
             }
             break;
 
-            case addi:
+            case opimm:
             {
                 auto imm = cast(ulong)(cast(long)(cast(int)(inst & 0xfff0_0000)) >> 20);
-                regs[rd] = regs[rs1] + imm;
+
+                with (Funct3)
+                switch (funct3)
+                {
+                    case addi:
+                        regs[rd] = regs[rs1] + imm;
+                        break;
+                    case slti: 
+                        regs[rd] = cast(long)regs[rs1] < cast(long)imm ? 1 : 0;
+                        break;
+                    case sltiu: 
+                        regs[rd] = cast(ulong)regs[rs1] < cast(ulong)imm ? 1 : 0;
+                        break;
+                    case xori: 
+                        regs[rd] = regs[rs1] ^ imm;
+                        break;
+                    case ori:
+                        regs[rd] = regs[rs1] | imm;
+                        break;
+                    case andi: 
+                        regs[rd] = regs[rs1] & imm;
+                        break;
+                    case slli:
+                        regs[rd] = regs[rs1] << (imm & 0x1f);
+                        break;
+                    case srli:
+                        if (funct7)
+                            regs[rd] = cast(long)regs[rs1] >> (imm & 0x1f);
+                        else
+                            regs[rd] = regs[rs1] >>> (imm & 0x1f);
+                        break;
+                    default: break;
+                }
             }
             break;
             case op:
