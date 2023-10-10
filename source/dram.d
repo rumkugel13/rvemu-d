@@ -6,6 +6,7 @@ import std.bitmanip : peek, write, Endian;
 // 128 MiB
 const auto DRAM_SIZE = 1024 * 1024 * 128;
 const auto DRAM_BASE = 0x8000_0000;
+const auto DRAM_END = DRAM_SIZE + DRAM_BASE - 1;
 
 struct Dram
 {

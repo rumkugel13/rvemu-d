@@ -3,6 +3,7 @@ module cpu;
 import std.bitmanip : peek, write, Endian;
 import std.stdio : writeln;
 import std.conv : to;
+import std.string : format;
 import opcode;
 import bus;
 
@@ -25,7 +26,7 @@ struct Cpu
     in(code.length <= DRAM_SIZE)
     {
         regs[0] = 0;
-        regs[2] = DRAM_SIZE - 1;
+        regs[2] = DRAM_END;
         pc = DRAM_BASE;
         this.bus = Bus(code);
     }
@@ -40,6 +41,16 @@ struct Cpu
         bus.store(addr, size, value);
     }
 
+    ulong loadDram(ulong addr, ulong size)
+    {
+        return load(addr + DRAM_BASE, size);
+    }
+
+    void storeDram(ulong addr, ulong size, ulong value)
+    {
+        store(addr + DRAM_BASE, size, value);
+    }
+
     uint fetch()
     {
         auto inst = cast(uint)bus.load(pc, 32);
@@ -48,12 +59,12 @@ struct Cpu
 
     bool execute(uint inst)
     {
-        auto opcode = inst & 0x7f;
-        auto rd = ((inst >> 7) & 0x1f);
-        auto rs1 = ((inst >> 15) & 0x1f);
-        auto rs2 = ((inst >> 20) & 0x1f);
-        auto funct3 = ((inst >> 12) & 0x07);
-        auto funct7 = ((inst >> 25) & 0x7f);
+        uint opcode = inst & 0x7f;
+        uint rd = ((inst >> 7) & 0x1f);
+        uint rs1 = ((inst >> 15) & 0x1f);
+        uint rs2 = ((inst >> 20) & 0x1f);
+        uint funct3 = ((inst >> 12) & 0x07);
+        uint funct7 = ((inst >> 25) & 0x7f);
 
         with(Opcode)
         switch (opcode)
@@ -67,43 +78,43 @@ struct Cpu
                 {
                     case lb:
                         {
-                            auto val = cast(byte)(this.load(addr, 8));
-                            regs[rd] = cast(ulong)(cast(long)val);
+                            long val = cast(byte)(this.loadDram(addr, 8));
+                            regs[rd] = cast(ulong)val;
                         }
                         break;
                     case lh:
                         {
-                            auto val = cast(short)(this.load(addr, 16));
-                            regs[rd] = cast(ulong)(cast(long)val);
+                            long val = cast(short)(this.loadDram(addr, 16));
+                            regs[rd] = cast(ulong)val;
                         }
                         break;
                     case lw:
                         {
-                            auto val = cast(int)(this.load(addr, 32));
-                            regs[rd] = cast(ulong)(cast(long)val);
+                            long val = cast(int)(this.loadDram(addr, 32));
+                            regs[rd] = cast(ulong)val;
                         }
                         break;
                     case ld:
                         {
-                            auto val = cast(long)this.load(addr, 64);
+                            long val = cast(long)this.loadDram(addr, 64);
                             regs[rd] = cast(ulong)val;
                         }
                         break;
                     case lbu:
                         {
-                            auto val = this.load(addr, 8);
+                            ulong val = this.loadDram(addr, 8);
                             regs[rd] = val;
                         }
                         break;
                     case lhu:
                         {
-                            auto val = this.load(addr, 16);
+                            ulong val = this.loadDram(addr, 16);
                             regs[rd] = val;
                         }
                         break;
                     case lwu:
                         {
-                            auto val = this.load(addr, 32);
+                            ulong val = this.loadDram(addr, 32);
                             regs[rd] = val;
                         }
                         break;
@@ -114,16 +125,16 @@ struct Cpu
             break;
             case store:
             {
-                auto imm = cast(ulong)(cast(long)(inst & 0xfe00_0000) >> 20) | cast(ulong)((inst >> 7) & 0x1f);
+                auto imm = cast(ulong)(cast(long)(cast(int)(inst & 0xfe00_0000)) >> 20) | ((inst >> 7) & 0x1f);
                 auto addr = regs[rs1] + imm;
 
                 with(Funct3)
                 switch (funct3)
                 {
-                    case sb: this.store(addr, 8, regs[rs2]); break;
-                    case sh: this.store(addr, 16, regs[rs2]); break;
-                    case sw: this.store(addr, 32, regs[rs2]); break;
-                    case sd: this.store(addr, 64, regs[rs2]); break;
+                    case sb: this.storeDram(addr, 8, regs[rs2]); break;
+                    case sh: this.storeDram(addr, 16, regs[rs2]); break;
+                    case sw: this.storeDram(addr, 32, regs[rs2]); break;
+                    case sd: this.storeDram(addr, 64, regs[rs2]); break;
                     default:
                         break;
                 }
@@ -132,7 +143,7 @@ struct Cpu
 
             case addi:
             {
-                auto imm = cast(ulong)(cast(long)(inst & 0xfff0_0000) >> 20);
+                auto imm = cast(ulong)(cast(long)(cast(int)(inst & 0xfff0_0000)) >> 20);
                 regs[rd] = regs[rs1] + imm;
             }
             break;
