@@ -150,6 +150,7 @@ struct Cpu
             case opimm:
             {
                 auto imm = cast(ulong)(cast(long)(cast(int)(inst & 0xfff0_0000)) >> 20);
+                uint shamt = imm & 0x3f; // note: in 64-bit mode the lower 6 bits are used, not 5
 
                 with (Funct3)
                 switch (funct3)
@@ -173,13 +174,13 @@ struct Cpu
                         regs[rd] = regs[rs1] & imm;
                         break;
                     case slli:
-                        regs[rd] = regs[rs1] << (imm & 0x3f);   // note: in 64-bit mode the lower 6 bits are used, not 5
+                        regs[rd] = regs[rs1] << shamt;
                         break;
                     case srli:
                         if (funct7)
-                            regs[rd] = cast(long)regs[rs1] >> (imm & 0x3f);
+                            regs[rd] = cast(long)regs[rs1] >> shamt;
                         else
-                            regs[rd] = regs[rs1] >>> (imm & 0x3f);
+                            regs[rd] = regs[rs1] >>> shamt;
                         break;
                     default: break;
                 }
@@ -187,6 +188,8 @@ struct Cpu
             break;
             case op:
             {
+                uint shamt = regs[rs2] & 0x1f;
+
                 with (Funct3)
                 switch (funct3)
                 {
@@ -197,7 +200,7 @@ struct Cpu
                             regs[rd] = regs[rs1] + regs[rs2];
                         break;
                     case sll:
-                        regs[rd] = regs[rs1] << (regs[rs2] & 0x1f);
+                        regs[rd] = regs[rs1] << shamt;
                         break;
                     case slt:
                         regs[rd] = cast(long)regs[rs1] < cast(long)regs[rs2] ? 1 : 0;
@@ -210,9 +213,9 @@ struct Cpu
                         break;
                     case srl:
                         if (funct7)
-                            regs[rd] = cast(long)regs[rs1] >> (regs[rs2] & 0x1f);
+                            regs[rd] = cast(long)regs[rs1] >> shamt;
                         else
-                            regs[rd] = regs[rs1] >>> (regs[rs2] & 0x1f);
+                            regs[rd] = regs[rs1] >>> shamt;
                         break;
                     case or:
                         regs[rd] = regs[rs1] | regs[rs2];
@@ -228,6 +231,8 @@ struct Cpu
 
             case op32:
             {
+                uint shamt = regs[rs2] & 0x1f;
+
                 with (Funct3)
                 switch (funct3)
                 {
@@ -238,13 +243,13 @@ struct Cpu
                             regs[rd] = cast(long)cast(int)(regs[rs1] + regs[rs2]);
                         break;
                     case sllw:
-                        regs[rd] = cast(long)cast(int)(regs[rs1] << (regs[rs2] & 0x1f));
+                        regs[rd] = cast(long)cast(int)(regs[rs1] << shamt);
                         break;
                     case srlw:
                         if (funct7)
-                            regs[rd] = cast(long)(cast(int)regs[rs1] >> (regs[rs2] & 0x1f));
+                            regs[rd] = cast(long)(cast(int)regs[rs1] >> cast(int)shamt);
                         else
-                            regs[rd] = cast(long)(cast(uint)regs[rs1] >>> (regs[rs2] & 0x1f));
+                            regs[rd] = cast(long)(cast(uint)regs[rs1] >>> shamt);
                         break;
                     default:
                         break;
@@ -254,7 +259,7 @@ struct Cpu
 
             case opimm32:
             {
-                auto imm = cast(ulong)(cast(long)(cast(int)(inst & 0xfff0_0000)) >> 20);
+                uint shamt = (imm & 0x1f);
 
                 with (Funct3)
                 switch (funct3)
@@ -263,13 +268,13 @@ struct Cpu
                         regs[rd] = cast(long)cast(int)(regs[rs1] + imm);
                         break;
                     case slliw:
-                        regs[rd] = cast(long)cast(int)(regs[rs1] << (imm & 0x1f));
+                        regs[rd] = cast(long)cast(int)(regs[rs1] << shamt);
                         break;
                     case srliw:
                         if (funct7)
-                            regs[rd] = cast(long)cast(int)(regs[rs1] >> (imm & 0x1f));
+                            regs[rd] = cast(long)cast(int)(regs[rs1] >> shamt);
                         else
-                            regs[rd] = cast(long)cast(int)(regs[rs1] >>> (imm & 0x1f));
+                            regs[rd] = cast(long)cast(int)(regs[rs1] >>> shamt);
                         break;
                     default:
                         break;
