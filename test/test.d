@@ -65,6 +65,123 @@ unittest
 unittest
 {
     ubyte[] data = [
+        0x93, 0x01, 0x50, 0x00, // addi x3, x0, 5
+        0x13, 0x02, 0x60, 0x00, // addi x4, x0, 6
+        0x33, 0x81, 0x41, 0x40, // sub x2, x3, x4
+    ];
+
+    ulong[ubyte] expected = [2: cast(ulong)-1L, 3: 5, 4: 6];
+
+    run("sub", data, expected);
+}
+
+unittest
+{
+    ubyte[] data = [
+        0x13, 0x08, 0x80, 0x00, // addi x16, x0, 8
+        0x93, 0x08, 0x20, 0x00, // addi x17, x0, 2
+        0x33, 0x19, 0x18, 0x01, // sll x18, x16, x17
+    ];
+
+    ulong[ubyte] expected = [16: 8, 17: 2, 18: 32];
+
+    run("sll", data, expected);
+}
+
+unittest
+{
+    ubyte[] data = [
+        0x13, 0x08, 0x80, 0xff, // addi x16, x0, -8
+        0x93, 0x08, 0x20, 0x00, // addi x17, x0, 2
+        0x33, 0x29, 0x18, 0x01, // slt x18, x16, x17
+    ];
+
+    ulong[ubyte] expected = [16: cast(ulong)-8L, 17: 2, 18: 1];
+
+    run("slt", data, expected);
+}
+
+unittest
+{
+    ubyte[] data = [
+        0x13, 0x08, 0x80, 0x00, // addi x16, x0, 8
+        0x93, 0x08, 0x20, 0x00, // addi x17, x0, 2
+        0x33, 0xb9, 0x08, 0x01, // slt x18, x17, x16
+    ];
+
+    ulong[ubyte] expected = [16: 8, 17: 2, 18: 1];
+
+    run("sltu", data, expected);
+}
+
+unittest
+{
+    ubyte[] data = [
+        0x13, 0x08, 0x30, 0x00, // addi x16, x0, 3
+        0x93, 0x08, 0x60, 0x00, // addi x17, x0, 6
+        0x33, 0x49, 0x18, 0x01, // xor x18, x16, x17
+    ];
+
+    ulong[ubyte] expected = [16: 3, 17: 6, 18: 5];
+
+    run("xor", data, expected);
+}
+
+unittest
+{
+    ubyte[] data = [
+        0x13, 0x08, 0x00, 0x01, // addi x16, x0, 16
+        0x93, 0x08, 0x20, 0x00, // addi x17, x0, 2
+        0x33, 0x59, 0x18, 0x01, // srl x18, x16, x17
+    ];
+
+    ulong[ubyte] expected = [16: 16, 17: 2, 18: 4];
+
+    run("srl", data, expected);
+}
+
+unittest
+{
+    ubyte[] data = [
+        0x13, 0x08, 0x00, 0xff, // addi x16, x0, -16
+        0x93, 0x08, 0x20, 0x00, // addi x17, x0, 2
+        0x33, 0x59, 0x18, 0x41, // sra x18, x16, x17
+    ];
+
+    ulong[ubyte] expected = [16: cast(ulong)-16L, 17: 2, 18: cast(ulong)-4L];
+
+    run("sra", data, expected);
+}
+
+unittest
+{
+    ubyte[] data = [
+        0x13, 0x08, 0x30, 0x00, // addi x16, x0, 3
+        0x93, 0x08, 0x50, 0x00, // addi x17, x0, 5
+        0x33, 0x69, 0x18, 0x01, // or x18, x16, x17
+    ];
+
+    ulong[ubyte] expected = [16: 3, 17: 5, 18: 7];
+
+    run("or", data, expected);
+}
+
+unittest
+{
+    ubyte[] data = [
+        0x13, 0x08, 0x30, 0x00, // addi x16, x0, 3
+        0x93, 0x08, 0x50, 0x00, // addi x17, x0, 5
+        0x33, 0x79, 0x18, 0x01, // and x18, x16, x17
+    ];
+
+    ulong[ubyte] expected = [16: 3, 17: 5, 18: 1];
+
+    run("and", data, expected);
+}
+
+unittest
+{
+    ubyte[] data = [
         0x13, 0x08, 0x50, 0x00, // addi x16, x0, 5
         0x93, 0x08, 0x30, 0x00, // addi x17, x0, 3
         0x03, 0x09, 0x40, 0x00, // lb x18, 4(x0)

@@ -148,9 +148,44 @@ struct Cpu
                 regs[rd] = regs[rs1] + imm;
             }
             break;
-            case add:
+            case op:
             {
-                regs[rd] = regs[rs1] + regs[rs2];
+                with (Funct3)
+                switch (funct3)
+                {
+                    case add:
+                        if (funct7)
+                            regs[rd] = regs[rs1] - regs[rs2];
+                        else 
+                            regs[rd] = regs[rs1] + regs[rs2];
+                        break;
+                    case sll:
+                        regs[rd] = regs[rs1] << (regs[rs2] & 0x1f);
+                        break;
+                    case slt:
+                        regs[rd] = cast(long)regs[rs1] < cast(long)regs[rs2] ? 1 : 0;
+                        break;
+                    case sltu:
+                        regs[rd] = cast(ulong)regs[rs1] < cast(ulong)regs[rs2] ? 1 : 0;
+                        break;
+                    case xor:
+                        regs[rd] = regs[rs1] ^ regs[rs2];
+                        break;
+                    case srl:
+                        if (funct7)
+                            regs[rd] = cast(long)regs[rs1] >> (regs[rs2] & 0x1f);
+                        else
+                            regs[rd] = regs[rs1] >>> (regs[rs2] & 0x1f);
+                        break;
+                    case or:
+                        regs[rd] = regs[rs1] | regs[rs2];
+                        break;
+                    case and:
+                        regs[rd] = regs[rs1] & regs[rs2];
+                        break;
+                    default:
+                        break;
+                }
             } 
             break;
 

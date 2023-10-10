@@ -3,7 +3,7 @@ module opcode;
 enum Opcode : uint
 {
     addi = 0x13,
-    add = 0x33,
+    op = 0x33,
     load = 0x03,
     store = 0x23,
     lui = 0x37,
@@ -34,4 +34,23 @@ enum Funct3 : uint
     bge = 0x5,
     bltu = 0x6,
     bgeu = 0x7,
+
+    add = 0x0,
+    sub = 0x0,
+    sll = 0x1,
+    slt = 0x2,
+    sltu = 0x3,
+    xor = 0x4,
+    srl = 0x5,
+    sra = 0x5,
+    or = 0x6,
+    and = 0x7,
+}
+
+enum Funct7 : uint
+{
+    add = 0x0,
+    sub = 0x20,
+    srl = 0x0,
+    sra = 0x20,
 }
