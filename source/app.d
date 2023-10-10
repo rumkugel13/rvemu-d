@@ -10,6 +10,7 @@ void main(string[] args)
     if (args.length != 2)
     {
         path = "test/add-addi.bin";
+        // path = "test/fib.bin";
         // writeln("Usage: \n\trvemu <filename>");
         // return;
     }

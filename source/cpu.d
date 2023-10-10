@@ -33,22 +33,26 @@ struct Cpu
 
     ulong load(ulong addr, ulong size)
     {
-        return bus.load(addr, size);
+        version(unittest)
+        {
+            return bus.load(addr + DRAM_BASE, size);
+        }
+        else
+        {
+            return bus.load(addr, size);
+        }
     }
 
     void store(ulong addr, ulong size, ulong value)
     {
-        bus.store(addr, size, value);
-    }
-
-    ulong loadDram(ulong addr, ulong size)
-    {
-        return load(addr + DRAM_BASE, size);
-    }
-
-    void storeDram(ulong addr, ulong size, ulong value)
-    {
-        store(addr + DRAM_BASE, size, value);
+        version(unittest)
+        {
+            bus.store(addr + DRAM_BASE, size, value);
+        }
+        else
+        {
+            bus.store(addr, size, value);
+        }
     }
 
     uint fetch()
@@ -60,6 +64,7 @@ struct Cpu
     // returns updated program counter
     ulong execute(uint inst)
     {
+        regs[0] = 0;
         uint opcode = inst & 0x7f;
         uint rd = ((inst >> 7) & 0x1f);
         uint rs1 = ((inst >> 15) & 0x1f);
@@ -79,43 +84,43 @@ struct Cpu
                 {
                     case lb:
                         {
-                            long val = cast(byte)(this.loadDram(addr, 8));
+                            long val = cast(byte)(this.load(addr, 8));
                             regs[rd] = cast(ulong)val;
                         }
                         break;
                     case lh:
                         {
-                            long val = cast(short)(this.loadDram(addr, 16));
+                            long val = cast(short)(this.load(addr, 16));
                             regs[rd] = cast(ulong)val;
                         }
                         break;
                     case lw:
                         {
-                            long val = cast(int)(this.loadDram(addr, 32));
+                            long val = cast(int)(this.load(addr, 32));
                             regs[rd] = cast(ulong)val;
                         }
                         break;
                     case ld:
                         {
-                            long val = cast(long)this.loadDram(addr, 64);
+                            long val = cast(long)this.load(addr, 64);
                             regs[rd] = cast(ulong)val;
                         }
                         break;
                     case lbu:
                         {
-                            ulong val = this.loadDram(addr, 8);
+                            ulong val = this.load(addr, 8);
                             regs[rd] = val;
                         }
                         break;
                     case lhu:
                         {
-                            ulong val = this.loadDram(addr, 16);
+                            ulong val = this.load(addr, 16);
                             regs[rd] = val;
                         }
                         break;
                     case lwu:
                         {
-                            ulong val = this.loadDram(addr, 32);
+                            ulong val = this.load(addr, 32);
                             regs[rd] = val;
                         }
                         break;
@@ -132,10 +137,10 @@ struct Cpu
                 with(Funct3)
                 switch (funct3)
                 {
-                    case sb: this.storeDram(addr, 8, regs[rs2]); break;
-                    case sh: this.storeDram(addr, 16, regs[rs2]); break;
-                    case sw: this.storeDram(addr, 32, regs[rs2]); break;
-                    case sd: this.storeDram(addr, 64, regs[rs2]); break;
+                    case sb: this.store(addr, 8, regs[rs2]); break;
+                    case sh: this.store(addr, 16, regs[rs2]); break;
+                    case sw: this.store(addr, 32, regs[rs2]); break;
+                    case sd: this.store(addr, 64, regs[rs2]); break;
                     default:
                         break;
                 }
