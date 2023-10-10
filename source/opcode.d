@@ -4,6 +4,8 @@ enum Opcode : uint
 {
     opimm = 0x13,
     op = 0x33,
+    op32 = 0x3b,
+    opimm32 = 0x1b,
     load = 0x03,
     store = 0x23,
     lui = 0x37,
@@ -55,6 +57,17 @@ enum Funct3 : uint
     slli = 0x1,
     srli = 0x5,
     srai = 0x5,
+
+    addw = add,
+    subw = sub,
+    sllw = sll,
+    srlw = srl,
+    sraw = sra,
+
+    addiw = addi,
+    slliw = slli,
+    srliw = srli,
+    sraiw = srai,
 }
 
 enum Funct7 : uint
