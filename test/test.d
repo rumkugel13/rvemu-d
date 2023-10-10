@@ -3,7 +3,7 @@ module test;
 import std.stdio : writeln;
 import std.string : format;
 
-import cpu;
+import cpu, dram;
 
 static void run(string name, ubyte[] data, ulong[ubyte] expected)
 {
@@ -18,13 +18,10 @@ static void run(string name, ubyte[] data, ulong[ubyte] expected)
         if (!inst)
             break;
 
-        cpu.pc += 4;
+        auto newpc = cpu.execute(inst);
+        cpu.pc = newpc;
 
-        // break on unknown instruction/error
-        if (!cpu.execute(inst))
-            break;
-
-        // avoid infinite loops
+        // avoid infinite loops / break on error
         if (cpu.pc == 0)
             break;
     }
@@ -217,4 +214,15 @@ unittest
     ulong[ubyte] expected = [16: 8192];
 
     run("lui", data, expected);
+}
+
+unittest
+{
+    ubyte[] data = [
+        0x17, 0x28, 0x00, 0x00, // auipc x16, 2
+    ];
+
+    ulong[ubyte] expected = [16: 0x2000 + DRAM_BASE];
+
+    run("auipc", data, expected);
 }

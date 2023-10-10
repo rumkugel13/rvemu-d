@@ -7,6 +7,7 @@ enum Opcode : uint
     load = 0x03,
     store = 0x23,
     lui = 0x37,
+    auipc = 0x17,
 }
 
 enum Funct3 : uint

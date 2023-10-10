@@ -57,7 +57,8 @@ struct Cpu
         return inst;
     }
 
-    bool execute(uint inst)
+    // returns updated program counter
+    ulong execute(uint inst)
     {
         uint opcode = inst & 0x7f;
         uint rd = ((inst >> 7) & 0x1f);
@@ -159,14 +160,22 @@ struct Cpu
                 regs[rd] = imm;
             }
             break;
+            case auipc:
+            {
+                auto imm = cast(long)(cast(int)(inst & 0xffff_f000));
+                pc += imm;
+                regs[rd] = pc;
+                return pc;
+            }
+
             default:
             {
                 writeln("Unknown Opcode: ", opcode);
-                return false;
+                return 0;
             }
         }
 
-        return true;
+        return pc + 4;
     }
 
     void dumpRegisters()

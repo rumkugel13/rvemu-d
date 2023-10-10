@@ -24,13 +24,10 @@ void main(string[] args)
     {
         auto inst = cpu.fetch();
 
-        cpu.pc += 4;
+        auto newpc = cpu.execute(inst);
+        cpu.pc = newpc;
 
-        // break on unknown instruction/error
-        if (!cpu.execute(inst))
-            break;
-
-        // avoid infinite loops
+        // avoid infinite loops / break on error
         if (cpu.pc == 0)
             break;
     }
