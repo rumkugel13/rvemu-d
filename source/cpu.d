@@ -15,6 +15,13 @@ const auto RVABI = [
     "s8", "s9", "s10", "s11", "t3", "t4", "t5", "t6"
 ];
 
+enum Mode
+{
+    User = 0x00,
+    Supervisor = 0x01,
+    Machine = 0x11,
+}
+
 struct Cpu
 {
     // 32 64-bit Registers
@@ -25,6 +32,8 @@ struct Cpu
     Bus bus;
     // Control Status Registers
     Csr csr;
+    // Privilege Mode
+    Mode mode;
 
     this(ubyte[] code)
     in (code.length <= DRAM_SIZE)
@@ -33,6 +42,7 @@ struct Cpu
         regs[2] = DRAM_END;
         pc = DRAM_BASE;
         this.bus = Bus(code);
+        mode = Mode.Machine;
     }
 
     ulong load(ulong addr, ulong size)
