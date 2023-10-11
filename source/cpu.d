@@ -259,6 +259,7 @@ struct Cpu
 
             case opimm32:
             {
+                ulong imm = cast(ulong)(cast(long)(cast(int)inst) >> 20);
                 uint shamt = (imm & 0x1f);
 
                 with (Funct3)
@@ -300,27 +301,26 @@ struct Cpu
             {
                 regs[rd] = pc + 4;
                 auto imm = cast(long)cast(int)(
-                    ((inst & 0x8000_0000) >>> 11) |
+                    (cast(int)(inst & 0x8000_0000) >> 11) |
                     (inst & 0xff000) |
-                    ((inst & 0x80000) >>> 9) |
-                    ((inst & 0x3ff00000) >>> 20));
+                    ((inst >> 9) & 0x800) |
+                    ((inst >> 20) & 0x7fe));
                 return pc + imm;
             }
             case jalr:
             {
                 regs[rd] = pc + 4;
-                auto imm = cast(long)cast(int)(inst >>> 20);
-                imm += regs[rs1];
-                imm &= ~0x1;
-                return pc + imm;
+                auto imm = cast(long)(cast(int)(inst & 0xfff0_0000) >> 20);
+                auto newpc = (imm + regs[rs1]) & ~0x1L;
+                return newpc;
             }
 
             case branch:
             {
                 auto imm = cast(long)cast(int)(
-                    ((inst & 0x8000_0000) >>> 19) |
-                    ((inst & 0x7e00_0000) >>> 20) |
-                    ((inst & 0xf00) >>> 7) |
+                    (cast(int)(inst & 0x8000_0000) >> 19) |
+                    ((inst >> 20) & 0x7e0) |
+                    ((inst >> 7) & 0x1e) |
                     ((inst & 0x80) << 4));
                 
                 with(Funct3)
