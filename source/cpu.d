@@ -23,6 +23,7 @@ struct Cpu
     ulong pc;
     // System Bus
     Bus bus;
+    // Control Status Registers
     Csr csr;
 
     this(ubyte[] code)
@@ -201,11 +202,13 @@ struct Cpu
 
                 with (Funct3) switch (funct3)
                 {
-                case add | sub:
-                    if (funct7)
-                        regs[rd] = regs[rs1] - regs[rs2];
-                    else
+                case add | sub | mul:
+                    if (funct7 == Funct7.add)
                         regs[rd] = regs[rs1] + regs[rs2];
+                    else if (funct7 == Funct7.sub)
+                        regs[rd] = regs[rs1] - regs[rs2];
+                    else if (funct7 == Funct7.muldiv)
+                        regs[rd] = regs[rs1] * regs[rs2];
                     break;
                 case sll:
                     regs[rd] = regs[rs1] << shamt;
@@ -216,20 +219,31 @@ struct Cpu
                 case sltu:
                     regs[rd] = cast(ulong) regs[rs1] < cast(ulong) regs[rs2] ? 1 : 0;
                     break;
-                case xor:
-                    regs[rd] = regs[rs1] ^ regs[rs2];
-                    break;
-                case srl | sra:
-                    if (funct7)
-                        regs[rd] = cast(long) regs[rs1] >> shamt;
+                case xor | div:
+                    if (funct7 == Funct7.muldiv)
+                        regs[rd] = cast(long)regs[rs1] / cast(long)regs[rs2];
                     else
+                        regs[rd] = regs[rs1] ^ regs[rs2];
+                    break;
+                case srl | sra | divu:
+                    if (funct7 == Funct7.sra)
+                        regs[rd] = cast(long) regs[rs1] >> shamt;
+                    else if (funct7 == Funct7.srl)
                         regs[rd] = regs[rs1] >>> shamt;
+                    else if (funct7 == Funct7.muldiv)
+                        regs[rd] = cast(ulong)regs[rs1] / cast(ulong)regs[rs2];
                     break;
-                case or:
-                    regs[rd] = regs[rs1] | regs[rs2];
+                case or | rem:
+                    if (funct7 == Funct7.muldiv)
+                        regs[rd] = cast(long)regs[rs1] % cast(long)regs[rs2];
+                    else
+                        regs[rd] = regs[rs1] | regs[rs2];
                     break;
-                case and:
-                    regs[rd] = regs[rs1] & regs[rs2];
+                case and | remu:
+                    if (funct7 == Funct7.muldiv)
+                        regs[rd] = cast(ulong)regs[rs1] % cast(ulong)regs[rs2];
+                    else
+                        regs[rd] = regs[rs1] & regs[rs2];
                     break;
                 default:
                     break;
@@ -243,20 +257,33 @@ struct Cpu
 
                 with (Funct3) switch (funct3)
                 {
-                case addw | subw:
-                    if (funct7)
-                        regs[rd] = cast(long) cast(int)(regs[rs1] - regs[rs2]);
-                    else
-                        regs[rd] = cast(long) cast(int)(regs[rs1] + regs[rs2]);
+                case addw | subw | mulw:
+                    if (funct7 == Funct7.sub)
+                        regs[rd] = cast(long)(cast(int)regs[rs1] - cast(int)regs[rs2]);
+                    else if (funct7 == Funct7.add)
+                        regs[rd] = cast(long)(cast(int)regs[rs1] + cast(int)regs[rs2]);
+                    else if (funct7 == Funct7.muldiv)
+                        regs[rd] = cast(long)(cast(int)regs[rs1] * cast(int)regs[rs2]);
                     break;
                 case sllw:
-                    regs[rd] = cast(long) cast(int)(regs[rs1] << shamt);
+                    regs[rd] = cast(long) (cast(int)regs[rs1] << shamt);
                     break;
-                case srlw | sraw:
-                    if (funct7)
+                case divw:
+                    regs[rd] = cast(long)(cast(int)regs[rs1] / cast(int)regs[rs2]);
+                    break;
+                case srlw | sraw | divuw:
+                    if (funct7 == Funct7.sra)
                         regs[rd] = cast(long)(cast(int) regs[rs1] >> cast(int) shamt);
-                    else
+                    else if (funct7 == Funct7.srl)
                         regs[rd] = cast(long)(cast(uint) regs[rs1] >>> shamt);
+                    else if (funct7 == Funct7.muldiv)
+                        regs[rd] = cast(long)cast(int)(cast(uint)regs[rs1] / cast(uint)regs[rs2]);
+                    break;
+                case remw:
+                    regs[rd] = cast(long)(cast(int)regs[rs1] % cast(int)regs[rs2]);
+                    break;
+                case remuw:
+                    regs[rd] = cast(long)cast(int)(cast(uint)regs[rs1] % cast(uint)regs[rs2]);
                     break;
                 default:
                     break;

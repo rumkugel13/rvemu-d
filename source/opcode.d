@@ -79,11 +79,23 @@ enum Funct3 : uint
     csrrwi = 0x5,
     csrrsi = 0x6,
     csrrci = 0x7,
+
+    mul = 0x0,
+    div = 0x4,
+    divu = 0x5,
+    rem = 0x6,
+    remu = 0x7,
+    mulw = mul,
+    divw = div,
+    divuw = divu,
+    remw = rem,
+    remuw = remu,
 }
 
 enum Funct7 : uint
 {
     add = 0x0,
+    muldiv = 0x1,
     sub = 0x20,
     srl = 0x0,
     sra = 0x20,
