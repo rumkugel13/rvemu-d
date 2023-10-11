@@ -6,6 +6,7 @@ import std.conv : to;
 import std.string : format;
 import opcode;
 import bus;
+import csr;
 
 const auto RVABI = [
     "zero", "ra", "sp", "gp", "tp", "t0", "t1", "t2", 
@@ -21,6 +22,7 @@ struct Cpu
     ulong pc;
     // System Bus
     Bus bus;
+    Csr csr;
 
     this(ubyte[] code)
     in(code.length <= DRAM_SIZE)
@@ -176,7 +178,7 @@ struct Cpu
                     case slli:
                         regs[rd] = regs[rs1] << shamt;
                         break;
-                    case srli:
+                    case srli | srai:
                         if (funct7)
                             regs[rd] = cast(long)regs[rs1] >> shamt;
                         else
@@ -193,7 +195,7 @@ struct Cpu
                 with (Funct3)
                 switch (funct3)
                 {
-                    case add:
+                    case add | sub:
                         if (funct7)
                             regs[rd] = regs[rs1] - regs[rs2];
                         else 
@@ -211,7 +213,7 @@ struct Cpu
                     case xor:
                         regs[rd] = regs[rs1] ^ regs[rs2];
                         break;
-                    case srl:
+                    case srl | sra:
                         if (funct7)
                             regs[rd] = cast(long)regs[rs1] >> shamt;
                         else
@@ -236,7 +238,7 @@ struct Cpu
                 with (Funct3)
                 switch (funct3)
                 {
-                    case addw:
+                    case addw | subw:
                         if (funct7)
                             regs[rd] = cast(long)cast(int)(regs[rs1] - regs[rs2]);
                         else 
@@ -245,7 +247,7 @@ struct Cpu
                     case sllw:
                         regs[rd] = cast(long)cast(int)(regs[rs1] << shamt);
                         break;
-                    case srlw:
+                    case srlw | sraw:
                         if (funct7)
                             regs[rd] = cast(long)(cast(int)regs[rs1] >> cast(int)shamt);
                         else
@@ -271,7 +273,7 @@ struct Cpu
                     case slliw:
                         regs[rd] = cast(long)cast(int)(regs[rs1] << shamt);
                         break;
-                    case srliw:
+                    case srliw | sraiw:
                         if (funct7)
                             regs[rd] = cast(long)cast(int)(regs[rs1] >> shamt);
                         else
@@ -360,21 +362,76 @@ struct Cpu
             case fence:
             {
                 // Not implemented, no out-of-order execution
-                break;
             }
+            break;
 
             case system:
             {
-                // if (inst & (1<<20))
-                // {
-                //     // EBREAK
-                // }
-                // else
-                // {
-                //     // ECALL
-                // }
-                break;
+                auto csr = (inst >> 20);
+                auto uimm = (inst >> 15) & 0x1f;
+
+                with (Funct3)
+                switch (funct3)
+                {
+                    case ecall | ebreak:
+                    {
+                        // if (inst & (1<<20))
+                        // {
+                        //     // EBREAK
+                        // }
+                        // else
+                        // {
+                        //     // ECALL
+                        // }
+                    }
+                    break;
+                    case csrrw: 
+                    {
+                        auto t = this.csr.load(csr);
+                        this.csr.store(csr, regs[rs1]);
+                        regs[rd] = t;
+                    }
+                    break; 
+                    case csrrs:
+                    {
+                        auto t = this.csr.load(csr);
+                        this.csr.store(csr, t | regs[rs1]);
+                        regs[rd] = t;
+                    }
+                    break; 
+                    case csrrc:
+                    {
+                        auto t = this.csr.load(csr);
+                        this.csr.store(csr, t & ~regs[rs1]);
+                        regs[rd] = t;
+                    }
+                    break; 
+                    case csrrwi:
+                    {
+                        regs[rd] = this.csr.load(csr);
+                        this.csr.store(csr, uimm);
+                    }
+                    break;
+                    case csrrsi:
+                    {
+                        auto t = this.csr.load(csr);
+                        this.csr.store(csr, t | uimm);
+                        regs[rd] = t;
+                    }
+                    break;
+                    case csrrci:
+                    {
+                        auto t = this.csr.load(csr);
+                        this.csr.store(csr, t & ~uimm);
+                        regs[rd] = t;
+                    }
+                    break;
+
+                    default:
+                        break;
+                }
             }
+            break;
 
             default:
             {

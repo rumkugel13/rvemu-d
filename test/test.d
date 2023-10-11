@@ -5,7 +5,7 @@ import std.string : format;
 
 import cpu, dram;
 
-static void run(string name, ubyte[] data, ulong[ubyte] regs, ulong pc = 0)
+static void run(string name, ubyte[] data, ulong[ubyte] regs, ulong pc = 0, ulong[ulong] csrs = null)
 {
     writeln("Testing ", name);
     Cpu cpu = Cpu(data);
@@ -34,6 +34,14 @@ static void run(string name, ubyte[] data, ulong[ubyte] regs, ulong pc = 0)
     
     if(pc)
         assert(pc == cpu.pc, format("Program counter expected: 0x%x, actual: 0x%x", pc, cpu.pc));
+    
+    if(csrs)
+    {
+        foreach (csr, val; csrs)
+        {
+            assert(cpu.csr.load(csr) == val, format("Csr 0x%x expected: 0x%x, actual: 0x%x", csr, val, cpu.csr.load(csr)));
+        }
+    }
 }
 
 // test cases from https://github.com/d0iasm/rvemu/blob/main/tests/rv32i.rs
@@ -546,4 +554,19 @@ unittest
     ulong[ubyte] expected = [16: 5, 17: 3];
 
     run("bgeu", data, expected, 12 + DRAM_BASE + 8);
+}
+
+unittest
+{
+    import std.file : read;
+    import csr;
+    ubyte[] data = cast(ubyte[])read("test/csr.bin");
+
+    ulong[ubyte] expected = [5: 1, 6: 2, 7: 3];
+    with(CsrName)
+    {
+        ulong[ulong] csrs = [MSTATUS: 1, MTVEC: 2, MEPC: 3, SSTATUS: 0, STVEC: 5, SEPC: 6];
+
+        run("csr", data, expected, 0, csrs);
+    }
 }

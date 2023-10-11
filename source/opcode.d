@@ -70,6 +70,15 @@ enum Funct3 : uint
     slliw = slli,
     srliw = srli,
     sraiw = srai,
+
+    ecall = 0x0,
+    ebreak = 0x0,
+    csrrw = 0x1,
+    csrrs = 0x2,
+    csrrc = 0x3,
+    csrrwi = 0x5,
+    csrrsi = 0x6,
+    csrrci = 0x7,
 }
 
 enum Funct7 : uint
