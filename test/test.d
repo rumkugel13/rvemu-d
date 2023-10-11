@@ -13,14 +13,15 @@ static void run(string name, ubyte[] data, ulong[ubyte] regs, ulong pc = 0, ulon
     while (true)
     {
         auto inst = cpu.fetch();
-        
+
         // break on zero inst
         if (!inst)
             break;
 
         auto newpc = cpu.execute(inst);
         cpu.pc = newpc;
-        if (newpc == pc) break;
+        if (newpc == pc)
+            break;
 
         // avoid infinite loops / break on error
         if (cpu.pc == 0)
@@ -29,17 +30,21 @@ static void run(string name, ubyte[] data, ulong[ubyte] regs, ulong pc = 0, ulon
 
     foreach (reg, val; regs)
     {
-        assert(cpu.regs[reg] == val, format("Register x%d expected: 0x%x, actual: 0x%x", reg, val, cpu.regs[reg]));
+        assert(cpu.regs[reg] == val, format("Register x%d expected: 0x%x, actual: 0x%x", reg, val, cpu
+                .regs[reg]));
     }
-    
-    if(pc)
+
+    if (pc)
+    {
         assert(pc == cpu.pc, format("Program counter expected: 0x%x, actual: 0x%x", pc, cpu.pc));
-    
-    if(csrs)
+    }
+
+    if (csrs)
     {
         foreach (csr, val; csrs)
         {
-            assert(cpu.csr.load(csr) == val, format("Csr 0x%x expected: 0x%x, actual: 0x%x", csr, val, cpu.csr.load(csr)));
+            assert(cpu.csr.load(csr) == val, format("Csr 0x%x expected: 0x%x, actual: 0x%x", csr, val, cpu.csr.load(
+                    csr)));
         }
     }
 }
@@ -397,7 +402,9 @@ unittest
         0x03, 0x19, 0x40, 0x00, // lh x18, 4(x0)
     ];
 
-    ulong[ubyte] expected = [16: cast(ulong)-1024L, 17: 3, 18: cast(ulong)-1024L];
+    ulong[ubyte] expected = [
+        16: cast(ulong)-1024L, 17: 3, 18: cast(ulong)-1024L
+    ];
 
     run("sh", data, expected);
 }
@@ -411,7 +418,9 @@ unittest
         0x03, 0x29, 0x40, 0x00, // lw x18, 4(x0)
     ];
 
-    ulong[ubyte] expected = [16: cast(ulong)-2048L, 17: 3, 18: cast(ulong)-2048L];
+    ulong[ubyte] expected = [
+        16: cast(ulong)-2048L, 17: 3, 18: cast(ulong)-2048L
+    ];
 
     run("sw", data, expected);
 }
@@ -425,7 +434,9 @@ unittest
         0x03, 0x39, 0x40, 0x00, // ld x18, 4(x0)
     ];
 
-    ulong[ubyte] expected = [16: cast(ulong)-2048L, 17: 3, 18: cast(ulong)-2048L];
+    ulong[ubyte] expected = [
+        16: cast(ulong)-2048L, 17: 3, 18: cast(ulong)-2048L
+    ];
 
     run("sd", data, expected);
 }
@@ -560,12 +571,15 @@ unittest
 {
     import std.file : read;
     import csr;
-    ubyte[] data = cast(ubyte[])read("test/csr.bin");
+
+    ubyte[] data = cast(ubyte[]) read("test/csr.bin");
 
     ulong[ubyte] expected = [5: 1, 6: 2, 7: 3];
-    with(CsrName)
+    with (CsrName)
     {
-        ulong[ulong] csrs = [MSTATUS: 1, MTVEC: 2, MEPC: 3, SSTATUS: 0, STVEC: 5, SEPC: 6];
+        ulong[ulong] csrs = [
+            MSTATUS: 1, MTVEC: 2, MEPC: 3, SSTATUS: 0, STVEC: 5, SEPC: 6
+        ];
 
         run("csr", data, expected, 0, csrs);
     }

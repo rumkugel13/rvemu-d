@@ -9,10 +9,11 @@ import bus;
 import csr;
 
 const auto RVABI = [
-    "zero", "ra", "sp", "gp", "tp", "t0", "t1", "t2", 
-    "s0", "s1", "a0", "a1", "a2", "a3", "a4", "a5", 
-    "a6", "a7", "s2", "s3", "s4", "s5", "s6", "s7", 
-    "s8", "s9", "s10", "s11", "t3", "t4", "t5", "t6"];
+    "zero", "ra", "sp", "gp", "tp", "t0", "t1", "t2",
+    "s0", "s1", "a0", "a1", "a2", "a3", "a4", "a5",
+    "a6", "a7", "s2", "s3", "s4", "s5", "s6", "s7",
+    "s8", "s9", "s10", "s11", "t3", "t4", "t5", "t6"
+];
 
 struct Cpu
 {
@@ -25,7 +26,7 @@ struct Cpu
     Csr csr;
 
     this(ubyte[] code)
-    in(code.length <= DRAM_SIZE)
+    in (code.length <= DRAM_SIZE)
     {
         regs[0] = 0;
         regs[2] = DRAM_END;
@@ -35,7 +36,7 @@ struct Cpu
 
     ulong load(ulong addr, ulong size)
     {
-        version(unittest)
+        version (unittest)
         {
             return bus.load(addr + DRAM_BASE, size);
         }
@@ -47,7 +48,7 @@ struct Cpu
 
     void store(ulong addr, ulong size, ulong value)
     {
-        version(unittest)
+        version (unittest)
         {
             bus.store(addr + DRAM_BASE, size, value);
         }
@@ -59,7 +60,7 @@ struct Cpu
 
     uint fetch()
     {
-        auto inst = cast(uint)bus.load(pc, 32);
+        auto inst = cast(uint) bus.load(pc, 32);
         return inst;
     }
 
@@ -74,224 +75,227 @@ struct Cpu
         uint funct3 = ((inst >> 12) & 0x07);
         uint funct7 = ((inst >> 25) & 0x7f);
 
-        with(Opcode)
-        switch (opcode)
+        with (Opcode) switch (opcode)
         {
-            case load:
+        case load:
             {
-                auto imm = cast(ulong)cast(long)(cast(int)(inst) >> 20);
+                auto imm = cast(ulong) cast(long)(cast(int)(inst) >> 20);
                 auto addr = regs[rs1] + imm;
-                with(Funct3)
-                switch (funct3)
+                with (Funct3) switch (funct3)
                 {
-                    case lb:
-                        {
-                            long val = cast(byte)(this.load(addr, 8));
-                            regs[rd] = cast(ulong)val;
-                        }
-                        break;
-                    case lh:
-                        {
-                            long val = cast(short)(this.load(addr, 16));
-                            regs[rd] = cast(ulong)val;
-                        }
-                        break;
-                    case lw:
-                        {
-                            long val = cast(int)(this.load(addr, 32));
-                            regs[rd] = cast(ulong)val;
-                        }
-                        break;
-                    case ld:
-                        {
-                            long val = cast(long)this.load(addr, 64);
-                            regs[rd] = cast(ulong)val;
-                        }
-                        break;
-                    case lbu:
-                        {
-                            ulong val = this.load(addr, 8);
-                            regs[rd] = val;
-                        }
-                        break;
-                    case lhu:
-                        {
-                            ulong val = this.load(addr, 16);
-                            regs[rd] = val;
-                        }
-                        break;
-                    case lwu:
-                        {
-                            ulong val = this.load(addr, 32);
-                            regs[rd] = val;
-                        }
-                        break;
-                    default:
-                        break;
+                case lb:
+                    {
+                        long val = cast(byte)(this.load(addr, 8));
+                        regs[rd] = cast(ulong) val;
+                    }
+                    break;
+                case lh:
+                    {
+                        long val = cast(short)(this.load(addr, 16));
+                        regs[rd] = cast(ulong) val;
+                    }
+                    break;
+                case lw:
+                    {
+                        long val = cast(int)(this.load(addr, 32));
+                        regs[rd] = cast(ulong) val;
+                    }
+                    break;
+                case ld:
+                    {
+                        long val = cast(long) this.load(addr, 64);
+                        regs[rd] = cast(ulong) val;
+                    }
+                    break;
+                case lbu:
+                    {
+                        ulong val = this.load(addr, 8);
+                        regs[rd] = val;
+                    }
+                    break;
+                case lhu:
+                    {
+                        ulong val = this.load(addr, 16);
+                        regs[rd] = val;
+                    }
+                    break;
+                case lwu:
+                    {
+                        ulong val = this.load(addr, 32);
+                        regs[rd] = val;
+                    }
+                    break;
+                default:
+                    break;
                 }
             }
             break;
-            case store:
+        case store:
             {
-                auto imm = cast(ulong)(cast(long)(cast(int)(inst & 0xfe00_0000)) >> 20) | ((inst >> 7) & 0x1f);
+                auto imm = cast(ulong)(cast(long)(cast(int)(inst & 0xfe00_0000)) >> 20) | (
+                    (inst >> 7) & 0x1f);
                 auto addr = regs[rs1] + imm;
 
-                with(Funct3)
-                switch (funct3)
+                with (Funct3) switch (funct3)
                 {
-                    case sb: this.store(addr, 8, regs[rs2]); break;
-                    case sh: this.store(addr, 16, regs[rs2]); break;
-                    case sw: this.store(addr, 32, regs[rs2]); break;
-                    case sd: this.store(addr, 64, regs[rs2]); break;
-                    default:
-                        break;
+                case sb:
+                    this.store(addr, 8, regs[rs2]);
+                    break;
+                case sh:
+                    this.store(addr, 16, regs[rs2]);
+                    break;
+                case sw:
+                    this.store(addr, 32, regs[rs2]);
+                    break;
+                case sd:
+                    this.store(addr, 64, regs[rs2]);
+                    break;
+                default:
+                    break;
                 }
             }
             break;
 
-            case opimm:
+        case opimm:
             {
                 auto imm = cast(ulong)(cast(long)(cast(int)(inst & 0xfff0_0000)) >> 20);
                 uint shamt = imm & 0x3f; // note: in 64-bit mode the lower 6 bits are used, not 5
 
-                with (Funct3)
-                switch (funct3)
+                with (Funct3) switch (funct3)
                 {
-                    case addi:
-                        regs[rd] = regs[rs1] + imm;
-                        break;
-                    case slti: 
-                        regs[rd] = cast(long)regs[rs1] < cast(long)imm ? 1 : 0;
-                        break;
-                    case sltiu: 
-                        regs[rd] = cast(ulong)regs[rs1] < cast(ulong)imm ? 1 : 0;
-                        break;
-                    case xori: 
-                        regs[rd] = regs[rs1] ^ imm;
-                        break;
-                    case ori:
-                        regs[rd] = regs[rs1] | imm;
-                        break;
-                    case andi: 
-                        regs[rd] = regs[rs1] & imm;
-                        break;
-                    case slli:
-                        regs[rd] = regs[rs1] << shamt;
-                        break;
-                    case srli | srai:
-                        if (funct7)
-                            regs[rd] = cast(long)regs[rs1] >> shamt;
-                        else
-                            regs[rd] = regs[rs1] >>> shamt;
-                        break;
-                    default: break;
+                case addi:
+                    regs[rd] = regs[rs1] + imm;
+                    break;
+                case slti:
+                    regs[rd] = cast(long) regs[rs1] < cast(long) imm ? 1 : 0;
+                    break;
+                case sltiu:
+                    regs[rd] = cast(ulong) regs[rs1] < cast(ulong) imm ? 1 : 0;
+                    break;
+                case xori:
+                    regs[rd] = regs[rs1] ^ imm;
+                    break;
+                case ori:
+                    regs[rd] = regs[rs1] | imm;
+                    break;
+                case andi:
+                    regs[rd] = regs[rs1] & imm;
+                    break;
+                case slli:
+                    regs[rd] = regs[rs1] << shamt;
+                    break;
+                case srli | srai:
+                    if (funct7)
+                        regs[rd] = cast(long) regs[rs1] >> shamt;
+                    else
+                        regs[rd] = regs[rs1] >>> shamt;
+                    break;
+                default:
+                    break;
                 }
             }
             break;
-            case op:
+        case op:
             {
                 uint shamt = regs[rs2] & 0x1f;
 
-                with (Funct3)
-                switch (funct3)
+                with (Funct3) switch (funct3)
                 {
-                    case add | sub:
-                        if (funct7)
-                            regs[rd] = regs[rs1] - regs[rs2];
-                        else 
-                            regs[rd] = regs[rs1] + regs[rs2];
-                        break;
-                    case sll:
-                        regs[rd] = regs[rs1] << shamt;
-                        break;
-                    case slt:
-                        regs[rd] = cast(long)regs[rs1] < cast(long)regs[rs2] ? 1 : 0;
-                        break;
-                    case sltu:
-                        regs[rd] = cast(ulong)regs[rs1] < cast(ulong)regs[rs2] ? 1 : 0;
-                        break;
-                    case xor:
-                        regs[rd] = regs[rs1] ^ regs[rs2];
-                        break;
-                    case srl | sra:
-                        if (funct7)
-                            regs[rd] = cast(long)regs[rs1] >> shamt;
-                        else
-                            regs[rd] = regs[rs1] >>> shamt;
-                        break;
-                    case or:
-                        regs[rd] = regs[rs1] | regs[rs2];
-                        break;
-                    case and:
-                        regs[rd] = regs[rs1] & regs[rs2];
-                        break;
-                    default:
-                        break;
-                }
-            } 
-            break;
-
-            case op32:
-            {
-                uint shamt = regs[rs2] & 0x1f;
-
-                with (Funct3)
-                switch (funct3)
-                {
-                    case addw | subw:
-                        if (funct7)
-                            regs[rd] = cast(long)cast(int)(regs[rs1] - regs[rs2]);
-                        else 
-                            regs[rd] = cast(long)cast(int)(regs[rs1] + regs[rs2]);
-                        break;
-                    case sllw:
-                        regs[rd] = cast(long)cast(int)(regs[rs1] << shamt);
-                        break;
-                    case srlw | sraw:
-                        if (funct7)
-                            regs[rd] = cast(long)(cast(int)regs[rs1] >> cast(int)shamt);
-                        else
-                            regs[rd] = cast(long)(cast(uint)regs[rs1] >>> shamt);
-                        break;
-                    default:
-                        break;
+                case add | sub:
+                    if (funct7)
+                        regs[rd] = regs[rs1] - regs[rs2];
+                    else
+                        regs[rd] = regs[rs1] + regs[rs2];
+                    break;
+                case sll:
+                    regs[rd] = regs[rs1] << shamt;
+                    break;
+                case slt:
+                    regs[rd] = cast(long) regs[rs1] < cast(long) regs[rs2] ? 1 : 0;
+                    break;
+                case sltu:
+                    regs[rd] = cast(ulong) regs[rs1] < cast(ulong) regs[rs2] ? 1 : 0;
+                    break;
+                case xor:
+                    regs[rd] = regs[rs1] ^ regs[rs2];
+                    break;
+                case srl | sra:
+                    if (funct7)
+                        regs[rd] = cast(long) regs[rs1] >> shamt;
+                    else
+                        regs[rd] = regs[rs1] >>> shamt;
+                    break;
+                case or:
+                    regs[rd] = regs[rs1] | regs[rs2];
+                    break;
+                case and:
+                    regs[rd] = regs[rs1] & regs[rs2];
+                    break;
+                default:
+                    break;
                 }
             }
             break;
 
-            case opimm32:
+        case op32:
             {
-                ulong imm = cast(ulong)(cast(long)(cast(int)inst) >> 20);
+                uint shamt = regs[rs2] & 0x1f;
+
+                with (Funct3) switch (funct3)
+                {
+                case addw | subw:
+                    if (funct7)
+                        regs[rd] = cast(long) cast(int)(regs[rs1] - regs[rs2]);
+                    else
+                        regs[rd] = cast(long) cast(int)(regs[rs1] + regs[rs2]);
+                    break;
+                case sllw:
+                    regs[rd] = cast(long) cast(int)(regs[rs1] << shamt);
+                    break;
+                case srlw | sraw:
+                    if (funct7)
+                        regs[rd] = cast(long)(cast(int) regs[rs1] >> cast(int) shamt);
+                    else
+                        regs[rd] = cast(long)(cast(uint) regs[rs1] >>> shamt);
+                    break;
+                default:
+                    break;
+                }
+            }
+            break;
+
+        case opimm32:
+            {
+                ulong imm = cast(ulong)(cast(long)(cast(int) inst) >> 20);
                 uint shamt = (imm & 0x1f);
 
-                with (Funct3)
-                switch (funct3)
+                with (Funct3) switch (funct3)
                 {
-                    case addiw:
-                        regs[rd] = cast(long)cast(int)(regs[rs1] + imm);
-                        break;
-                    case slliw:
-                        regs[rd] = cast(long)cast(int)(regs[rs1] << shamt);
-                        break;
-                    case srliw | sraiw:
-                        if (funct7)
-                            regs[rd] = cast(long)cast(int)(regs[rs1] >> shamt);
-                        else
-                            regs[rd] = cast(long)cast(int)(regs[rs1] >>> shamt);
-                        break;
-                    default:
-                        break;
+                case addiw:
+                    regs[rd] = cast(long) cast(int)(regs[rs1] + imm);
+                    break;
+                case slliw:
+                    regs[rd] = cast(long) cast(int)(regs[rs1] << shamt);
+                    break;
+                case srliw | sraiw:
+                    if (funct7)
+                        regs[rd] = cast(long) cast(int)(regs[rs1] >> shamt);
+                    else
+                        regs[rd] = cast(long) cast(int)(regs[rs1] >>> shamt);
+                    break;
+                default:
+                    break;
                 }
             }
             break;
 
-            case lui:
+        case lui:
             {
                 auto imm = cast(long)(cast(int)(inst & 0xffff_f000));
                 regs[rd] = imm;
             }
             break;
-            case auipc:
+        case auipc:
             {
                 auto imm = cast(long)(cast(int)(inst & 0xffff_f000));
                 pc += imm;
@@ -299,17 +303,18 @@ struct Cpu
                 return pc;
             }
 
-            case jal:
+        case jal:
             {
                 regs[rd] = pc + 4;
-                auto imm = cast(long)cast(int)(
+                auto imm = cast(long) cast(int)(
                     (cast(int)(inst & 0x8000_0000) >> 11) |
-                    (inst & 0xff000) |
-                    ((inst >> 9) & 0x800) |
-                    ((inst >> 20) & 0x7fe));
+                        (
+                            inst & 0xff000) |
+                        ((inst >> 9) & 0x800) |
+                        ((inst >> 20) & 0x7fe));
                 return pc + imm;
             }
-            case jalr:
+        case jalr:
             {
                 regs[rd] = pc + 4;
                 auto imm = cast(long)(cast(int)(inst & 0xfff0_0000) >> 20);
@@ -317,63 +322,63 @@ struct Cpu
                 return newpc;
             }
 
-            case branch:
+        case branch:
             {
-                auto imm = cast(long)cast(int)(
-                    (cast(int)(inst & 0x8000_0000) >> 19) |
-                    ((inst >> 20) & 0x7e0) |
-                    ((inst >> 7) & 0x1e) |
-                    ((inst & 0x80) << 4));
-                
-                with(Funct3)
-                switch (funct3)
-                {
-                    case beq:
-                        if (regs[rs1] == regs[rs2])
-                            return pc + imm;
-                        break;
-                    case bne:
-                        if (regs[rs1] != regs[rs2])
-                            return pc + imm;
-                        break;
-                    case blt:
-                        if (cast(long)regs[rs1] < cast(long)regs[rs2])
-                            return pc + imm;
-                        break;
-                    case bge:
-                        if (cast(long)regs[rs1] >= cast(long)regs[rs2])
-                            return pc + imm;
-                        break;
-                    case bltu:
-                        if (cast(ulong)regs[rs1] < cast(ulong)regs[rs2])
-                            return pc + imm;
-                        break;
-                    case bgeu:
-                        if (cast(ulong)regs[rs1] >= cast(ulong)regs[rs2])
-                            return pc + imm;
-                        break;
+                auto imm = cast(long) cast(int)(
+                    (cast(int)(
+                        inst & 0x8000_0000) >> 19) |
+                        ((inst >> 20) & 0x7e0) |
+                        (
+                            (inst >> 7) & 0x1e) |
+                        ((inst & 0x80) << 4));
 
-                    default:
-                        break;
+                with (Funct3) switch (funct3)
+                {
+                case beq:
+                    if (regs[rs1] == regs[rs2])
+                        return pc + imm;
+                    break;
+                case bne:
+                    if (regs[rs1] != regs[rs2])
+                        return pc + imm;
+                    break;
+                case blt:
+                    if (cast(long) regs[rs1] < cast(long) regs[rs2])
+                        return pc + imm;
+                    break;
+                case bge:
+                    if (cast(long) regs[rs1] >= cast(long) regs[rs2])
+                        return pc + imm;
+                    break;
+                case bltu:
+                    if (cast(ulong) regs[rs1] < cast(ulong) regs[rs2])
+                        return pc + imm;
+                    break;
+                case bgeu:
+                    if (cast(ulong) regs[rs1] >= cast(ulong) regs[rs2])
+                        return pc + imm;
+                    break;
+
+                default:
+                    break;
                 }
                 return pc + 4;
             }
 
-            case fence:
+        case fence:
             {
                 // Not implemented, no out-of-order execution
             }
             break;
 
-            case system:
+        case system:
             {
                 auto csr = (inst >> 20);
                 auto uimm = (inst >> 15) & 0x1f;
 
-                with (Funct3)
-                switch (funct3)
+                with (Funct3) switch (funct3)
                 {
-                    case ecall | ebreak:
+                case ecall | ebreak:
                     {
                         // if (inst & (1<<20))
                         // {
@@ -385,41 +390,41 @@ struct Cpu
                         // }
                     }
                     break;
-                    case csrrw: 
+                case csrrw:
                     {
                         auto t = this.csr.load(csr);
                         this.csr.store(csr, regs[rs1]);
                         regs[rd] = t;
                     }
-                    break; 
-                    case csrrs:
+                    break;
+                case csrrs:
                     {
                         auto t = this.csr.load(csr);
                         this.csr.store(csr, t | regs[rs1]);
                         regs[rd] = t;
                     }
-                    break; 
-                    case csrrc:
+                    break;
+                case csrrc:
                     {
                         auto t = this.csr.load(csr);
                         this.csr.store(csr, t & ~regs[rs1]);
                         regs[rd] = t;
                     }
-                    break; 
-                    case csrrwi:
+                    break;
+                case csrrwi:
                     {
                         regs[rd] = this.csr.load(csr);
                         this.csr.store(csr, uimm);
                     }
                     break;
-                    case csrrsi:
+                case csrrsi:
                     {
                         auto t = this.csr.load(csr);
                         this.csr.store(csr, t | uimm);
                         regs[rd] = t;
                     }
                     break;
-                    case csrrci:
+                case csrrci:
                     {
                         auto t = this.csr.load(csr);
                         this.csr.store(csr, t & ~uimm);
@@ -427,13 +432,13 @@ struct Cpu
                     }
                     break;
 
-                    default:
-                        break;
+                default:
+                    break;
                 }
             }
             break;
 
-            default:
+        default:
             {
                 writeln(format("Unknown Opcode: 0x%02x in Instruction 0x%08x at Address 0x%08x", opcode, inst, pc));
                 return 0;
@@ -446,24 +451,25 @@ struct Cpu
     void dumpRegisters()
     {
         import std.string : format;
+
         string output;
 
         for (int i = 0; i < RVABI.length; i += 4)
         {
             output = format("%s\n%s", output, format(
-                "x%02d(%04s)=%#018x x%02d(%04s)=%#018x x%02d(%04s)=%#018x x%02d(%04s)=%#018x",
-                i,
-                RVABI[i],
-                regs[i],
-                i + 1,
-                RVABI[i + 1],
-                regs[i + 1],
-                i + 2,
-                RVABI[i + 2],
-                regs[i + 2],
-                i + 3,
-                RVABI[i + 3],
-                regs[i + 3],
+                    "x%02d(%04s)=%#018x x%02d(%04s)=%#018x x%02d(%04s)=%#018x x%02d(%04s)=%#018x",
+                    i,
+                    RVABI[i],
+                    regs[i],
+                    i + 1,
+                    RVABI[i + 1],
+                    regs[i + 1],
+                    i + 2,
+                    RVABI[i + 2],
+                    regs[i + 2],
+                    i + 3,
+                    RVABI[i + 3],
+                    regs[i + 3],
             ));
         }
 

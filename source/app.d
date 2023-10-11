@@ -14,11 +14,12 @@ void main(string[] args)
         // writeln("Usage: \n\trvemu <filename>");
         // return;
     }
-    else {
+    else
+    {
         path = args[1];
     }
 
-    auto file = cast(ubyte[])read(path);
+    auto file = cast(ubyte[]) read(path);
     auto cpu = Cpu(file);
 
     while (true)
