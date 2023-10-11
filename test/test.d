@@ -19,8 +19,8 @@ static void run(string name, ubyte[] data, ulong[ubyte] regs, ulong pc = 0)
             break;
 
         auto newpc = cpu.execute(inst);
-        if (newpc == 0) break;
         cpu.pc = newpc;
+        if (newpc == pc) break;
 
         // avoid infinite loops / break on error
         if (cpu.pc == 0)
@@ -467,7 +467,7 @@ unittest
 
     ulong[ubyte] expected = [16: 3, 17: 5, 18: 12 + DRAM_BASE];
 
-    run("jalr", data, expected, 44 + DRAM_BASE + 8);
+    run("jalr", data, expected, 44);
 }
 
 unittest
