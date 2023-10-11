@@ -73,6 +73,7 @@ enum Funct3 : uint
 
     ecall = 0x0,
     ebreak = 0x0,
+    sfence_vma = 0x0,
     csrrw = 0x1,
     csrrs = 0x2,
     csrrc = 0x3,
@@ -103,4 +104,8 @@ enum Funct7 : uint
     slli = 0x0,
     srli = 0x0,
     srai = 0x20,
+
+    ecall = 0x0,
+    ebreak = 0x1,
+    sfence_vma = 0x9,
 }

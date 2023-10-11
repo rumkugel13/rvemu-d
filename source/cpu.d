@@ -405,16 +405,16 @@ struct Cpu
 
                 with (Funct3) switch (funct3)
                 {
-                case ecall | ebreak:
+                case ecall | ebreak | sfence_vma:
                     {
-                        // if (inst & (1<<20))
-                        // {
-                        //     // EBREAK
-                        // }
-                        // else
-                        // {
-                        //     // ECALL
-                        // }
+                        // treat as nop
+                        switch (funct7)
+                        {
+                            case Funct7.ecall:
+                            case Funct7.ebreak:
+                            case Funct7.sfence_vma:
+                            default: break;
+                        }
                     }
                     break;
                 case csrrw:
