@@ -221,7 +221,7 @@ struct Cpu
                     break;
                 case xor | div:
                     if (funct7 == Funct7.muldiv)
-                        regs[rd] = cast(long)regs[rs1] / cast(long)regs[rs2];
+                        regs[rd] = regs[rs2] ? cast(long)regs[rs1] / cast(long)regs[rs2] : -1L;
                     else
                         regs[rd] = regs[rs1] ^ regs[rs2];
                     break;
@@ -231,17 +231,17 @@ struct Cpu
                     else if (funct7 == Funct7.srl)
                         regs[rd] = regs[rs1] >>> shamt;
                     else if (funct7 == Funct7.muldiv)
-                        regs[rd] = cast(ulong)regs[rs1] / cast(ulong)regs[rs2];
+                        regs[rd] = regs[rs2] ? cast(ulong)regs[rs1] / cast(ulong)regs[rs2] : 0xffffffff_ffffffff;
                     break;
                 case or | rem:
                     if (funct7 == Funct7.muldiv)
-                        regs[rd] = cast(long)regs[rs1] % cast(long)regs[rs2];
+                        regs[rd] = regs[rs2] ? cast(long)regs[rs1] % cast(long)regs[rs2] : regs[rs1];
                     else
                         regs[rd] = regs[rs1] | regs[rs2];
                     break;
                 case and | remu:
                     if (funct7 == Funct7.muldiv)
-                        regs[rd] = cast(ulong)regs[rs1] % cast(ulong)regs[rs2];
+                        regs[rd] = regs[rs2] ? cast(ulong)regs[rs1] % cast(ulong)regs[rs2] : regs[rs1];
                     else
                         regs[rd] = regs[rs1] & regs[rs2];
                     break;
@@ -269,7 +269,7 @@ struct Cpu
                     regs[rd] = cast(long) (cast(int)regs[rs1] << shamt);
                     break;
                 case divw:
-                    regs[rd] = cast(long)(cast(int)regs[rs1] / cast(int)regs[rs2]);
+                    regs[rd] = regs[rs2] ? cast(long)(cast(int)regs[rs1] / cast(int)regs[rs2]) : -1L;
                     break;
                 case srlw | sraw | divuw:
                     if (funct7 == Funct7.sra)
@@ -277,13 +277,16 @@ struct Cpu
                     else if (funct7 == Funct7.srl)
                         regs[rd] = cast(long)(cast(uint) regs[rs1] >>> shamt);
                     else if (funct7 == Funct7.muldiv)
-                        regs[rd] = cast(long)cast(int)(cast(uint)regs[rs1] / cast(uint)regs[rs2]);
+                        regs[rd] = regs[rs2] ? cast(long)cast(int)(cast(uint)regs[rs1] / cast(uint)regs[rs2]) : 
+                            cast(long)0xffff_ffff;
                     break;
                 case remw:
-                    regs[rd] = cast(long)(cast(int)regs[rs1] % cast(int)regs[rs2]);
+                    regs[rd] = regs[rs2] ? cast(long)(cast(int)regs[rs1] % cast(int)regs[rs2]) : 
+                        cast(long)cast(int)regs[rs1];
                     break;
                 case remuw:
-                    regs[rd] = cast(long)cast(int)(cast(uint)regs[rs1] % cast(uint)regs[rs2]);
+                    regs[rd] = regs[rs2] ? cast(long)cast(int)(cast(uint)regs[rs1] % cast(uint)regs[rs2]) : 
+                        cast(long)cast(int)regs[rs1];
                     break;
                 default:
                     break;
