@@ -26,6 +26,7 @@ static void run(string name, ubyte[] data, ulong[ubyte] regs, ulong pc = 0, ulon
                 // writeln(exception);
                 break;
             }
+            continue;
         }
 
         ulong newpc;

@@ -38,6 +38,7 @@ void main(string[] args)
                 writeln(exception);
                 break;
             }
+            continue;
         }
 
         ulong newpc;
