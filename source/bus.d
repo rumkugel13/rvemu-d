@@ -3,10 +3,14 @@ module bus;
 import std.string : format;
 import exception;
 public import dram;
+public import plic;
+public import clint;
 
 struct Bus
 {
     Dram dram;
+    Plic plic;
+    Clint clint;
 
     this(ubyte[] code)
     {
@@ -15,20 +19,25 @@ struct Bus
 
     Ret load(ulong addr, ulong size)
     {
-        if (DRAM_BASE <= addr)
-        {
+        if (CLINT_BASE <= addr && addr <= CLINT_END)
+            return clint.load(addr, size); 
+        else if (PLIC_BASE <= addr && addr <= PLIC_END)
+            return plic.load(addr, size);
+        else if (DRAM_BASE <= addr && addr <= DRAM_END)
             return dram.load(addr, size);
-        }
-        return Ret(CpuException(ExceptionCode.LoadAccessFault, addr));
+        else
+            return Ret(CpuException(ExceptionCode.LoadAccessFault, addr));
     }
 
     Ret store(ulong addr, ulong size, ulong value)
     {
-        if (DRAM_BASE <= addr)
-        {
-            dram.store(addr, size, value);
-            return Ret(0);
-        }
-        return Ret(CpuException(ExceptionCode.StoreAMOAccessFault, addr));
+        if (CLINT_BASE <= addr && addr <= CLINT_END)
+            return clint.store(addr, size, value); 
+        else if (PLIC_BASE <= addr && addr <= PLIC_END)
+            return plic.store(addr, size, value);
+        else if (DRAM_BASE <= addr && addr <= DRAM_END)
+            return dram.store(addr, size, value);
+        else
+            return Ret(CpuException(ExceptionCode.StoreAMOAccessFault, addr));
     }
 }
