@@ -421,7 +421,7 @@ struct Cpu
 
                 with (Funct3) switch (funct3)
                 {
-                case ecall | ebreak | sfence_vma:
+                case ecall | ebreak | sfence_vma | sret | mret:
                     {
                         // treat as nop
                         switch (funct7)
@@ -430,6 +430,35 @@ struct Cpu
                         case Funct7.ebreak:
                         case Funct7.sfence_vma:
                         default:
+                            break;
+                        case Funct7.sret:
+                            with (CsrName) with (CsrMask) if (rs2 == 0x2)
+                            {
+                                auto sstatus = this.csr.load(SSTATUS);
+                                this.mode = cast(Mode)((sstatus & MASK_SPP) >> 8);
+                                auto spie = (sstatus & MASK_SPIE) >> 5;
+                                sstatus = (sstatus & ~MASK_SIE) | (spie << 1);
+                                sstatus |= MASK_SPIE;
+                                sstatus &= ~MASK_SPP;
+                                this.csr.store(SSTATUS, sstatus);
+                                auto newpc = this.csr.load(SEPC) & ~0b11;
+                                return newpc;
+                            }
+                            break;
+                        case Funct7.mret:
+                            with (CsrName) with (CsrMask) if (rs2 == 0x2)
+                            {
+                                auto mstatus = this.csr.load(MSTATUS);
+                                this.mode = cast(Mode)((mstatus & MASK_MPP) >> 11);
+                                auto mpie = (mstatus & MASK_MPIE) >> 7;
+                                mstatus = (mstatus & ~MASK_MIE) | (mpie << 3);
+                                mstatus |= MASK_MPIE;
+                                mstatus &= ~MASK_MPP;
+                                mstatus &= ~MASK_MPRV;
+                                this.csr.store(MSTATUS, mstatus);
+                                auto newpc = this.csr.load(MEPC) & ~0b11;
+                                return newpc;
+                            }
                             break;
                         }
                     }
