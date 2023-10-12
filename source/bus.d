@@ -1,6 +1,7 @@
 module bus;
 
 import std.string : format;
+import exception;
 public import dram;
 
 struct Bus
@@ -12,22 +13,22 @@ struct Bus
         dram = Dram(code);
     }
 
-    ulong load(ulong addr, ulong size)
+    Ret load(ulong addr, ulong size)
     {
         if (DRAM_BASE <= addr)
         {
             return dram.load(addr, size);
         }
-        assert(0, format("Address out of range: %x", addr));
+        return Ret(CpuException(ExceptionCode.LoadAccessFault, addr));
     }
 
-    void store(ulong addr, ulong size, ulong value)
+    Ret store(ulong addr, ulong size, ulong value)
     {
         if (DRAM_BASE <= addr)
         {
             dram.store(addr, size, value);
-            return;
+            return Ret(0);
         }
-        assert(0, format("Address out of range: %x", addr));
+        return Ret(CpuException(ExceptionCode.StoreAMOAccessFault, addr));
     }
 }

@@ -7,6 +7,7 @@ import std.string : format;
 import opcode;
 import bus;
 import csr;
+import exception;
 
 const auto RVABI = [
     "zero", "ra", "sp", "gp", "tp", "t0", "t1", "t2",
@@ -45,7 +46,7 @@ struct Cpu
         mode = Mode.Machine;
     }
 
-    ulong load(ulong addr, ulong size)
+    Ret load(ulong addr, ulong size)
     {
         version (unittest)
         {
@@ -57,26 +58,29 @@ struct Cpu
         }
     }
 
-    void store(ulong addr, ulong size, ulong value)
+    Ret store(ulong addr, ulong size, ulong value)
     {
         version (unittest)
         {
-            bus.store(addr + DRAM_BASE, size, value);
+            return bus.store(addr + DRAM_BASE, size, value);
         }
         else
         {
-            bus.store(addr, size, value);
+            return bus.store(addr, size, value);
         }
     }
 
-    uint fetch()
+    Ret fetch()
     {
-        auto inst = cast(uint) bus.load(pc, 32);
-        return inst;
+        auto ret = bus.load(pc, 32);
+        if (ret.ok)
+            return ret;
+        else
+            return Ret(CpuException(ExceptionCode.InstructionAccessFault, pc));
     }
 
     // returns updated program counter
-    ulong execute(uint inst)
+    Ret execute(uint inst)
     {
         regs[0] = 0;
         uint opcode = inst & 0x7f;
@@ -96,48 +100,69 @@ struct Cpu
                 {
                 case lb:
                     {
-                        long val = cast(byte)(this.load(addr, 8));
-                        regs[rd] = cast(ulong) val;
+                        auto val = this.load(addr, 8);
+                        if (val.ok)
+                            regs[rd] = cast(long) cast(byte) val.value;
+                        else
+                            return val;
                     }
                     break;
                 case lh:
                     {
-                        long val = cast(short)(this.load(addr, 16));
-                        regs[rd] = cast(ulong) val;
+                        auto val = this.load(addr, 16);
+                        if (val.ok)
+                            regs[rd] = cast(long) cast(short) val.value;
+                        else
+                            return val;
                     }
                     break;
                 case lw:
                     {
-                        long val = cast(int)(this.load(addr, 32));
-                        regs[rd] = cast(ulong) val;
+                        auto val = this.load(addr, 32);
+                        if (val.ok)
+                            regs[rd] = cast(long) cast(int) val.value;
+                        else
+                            return val;
                     }
                     break;
                 case ld:
                     {
-                        long val = cast(long) this.load(addr, 64);
-                        regs[rd] = cast(ulong) val;
+                        auto val = this.load(addr, 64);
+                        if (val.ok)
+                            regs[rd] = cast(long) cast(long) val.value;
+                        else
+                            return val;
                     }
                     break;
                 case lbu:
                     {
-                        ulong val = this.load(addr, 8);
-                        regs[rd] = val;
+                        auto val = this.load(addr, 8);
+                        if (val.ok)
+                            regs[rd] = val.value;
+                        else
+                            return val;
                     }
                     break;
                 case lhu:
                     {
-                        ulong val = this.load(addr, 16);
-                        regs[rd] = val;
+                        auto val = this.load(addr, 16);
+                        if (val.ok)
+                            regs[rd] = val.value;
+                        else
+                            return val;
                     }
                     break;
                 case lwu:
                     {
-                        ulong val = this.load(addr, 32);
-                        regs[rd] = val;
+                        auto val = this.load(addr, 32);
+                        if (val.ok)
+                            regs[rd] = val.value;
+                        else
+                            return val;
                     }
                     break;
                 default:
-                    break;
+                    return Ret(CpuException(ExceptionCode.IllegalInstruction, inst));
                 }
             }
             break;
@@ -162,7 +187,7 @@ struct Cpu
                     this.store(addr, 64, regs[rs2]);
                     break;
                 default:
-                    break;
+                    return Ret(CpuException(ExceptionCode.IllegalInstruction, inst));
                 }
             }
             break;
@@ -202,7 +227,7 @@ struct Cpu
                         regs[rd] = regs[rs1] >>> shamt;
                     break;
                 default:
-                    break;
+                    return Ret(CpuException(ExceptionCode.IllegalInstruction, inst));
                 }
             }
             break;
@@ -259,7 +284,7 @@ struct Cpu
                         regs[rd] = regs[rs1] & regs[rs2];
                     break;
                 default:
-                    break;
+                    return Ret(CpuException(ExceptionCode.IllegalInstruction, inst));
                 }
             }
             break;
@@ -302,7 +327,7 @@ struct Cpu
                         cast(uint) regs[rs1] % cast(uint) regs[rs2]) : cast(long) cast(int) regs[rs1];
                     break;
                 default:
-                    break;
+                    return Ret(CpuException(ExceptionCode.IllegalInstruction, inst));
                 }
             }
             break;
@@ -327,7 +352,7 @@ struct Cpu
                         regs[rd] = cast(long) cast(int)(regs[rs1] >>> shamt);
                     break;
                 default:
-                    break;
+                    return Ret(CpuException(ExceptionCode.IllegalInstruction, inst));
                 }
             }
             break;
@@ -343,7 +368,7 @@ struct Cpu
                 auto imm = cast(long)(cast(int)(inst & 0xffff_f000));
                 pc += imm;
                 regs[rd] = pc;
-                return pc;
+                return Ret(pc);
             }
 
         case jal:
@@ -355,14 +380,14 @@ struct Cpu
                             inst & 0xff000) |
                         ((inst >> 9) & 0x800) |
                         ((inst >> 20) & 0x7fe));
-                return pc + imm;
+                return Ret(pc + imm);
             }
         case jalr:
             {
                 regs[rd] = pc + 4;
                 auto imm = cast(long)(cast(int)(inst & 0xfff0_0000) >> 20);
                 auto newpc = (imm + regs[rs1]) & ~0x1L;
-                return newpc;
+                return Ret(newpc);
             }
 
         case branch:
@@ -379,33 +404,33 @@ struct Cpu
                 {
                 case beq:
                     if (regs[rs1] == regs[rs2])
-                        return pc + imm;
+                        return Ret(pc + imm);
                     break;
                 case bne:
                     if (regs[rs1] != regs[rs2])
-                        return pc + imm;
+                        return Ret(pc + imm);
                     break;
                 case blt:
                     if (cast(long) regs[rs1] < cast(long) regs[rs2])
-                        return pc + imm;
+                        return Ret(pc + imm);
                     break;
                 case bge:
                     if (cast(long) regs[rs1] >= cast(long) regs[rs2])
-                        return pc + imm;
+                        return Ret(pc + imm);
                     break;
                 case bltu:
                     if (cast(ulong) regs[rs1] < cast(ulong) regs[rs2])
-                        return pc + imm;
+                        return Ret(pc + imm);
                     break;
                 case bgeu:
                     if (cast(ulong) regs[rs1] >= cast(ulong) regs[rs2])
-                        return pc + imm;
+                        return Ret(pc + imm);
                     break;
 
                 default:
-                    break;
+                    return Ret(CpuException(ExceptionCode.IllegalInstruction, inst));
                 }
-                return pc + 4;
+                return Ret(pc + 4);
             }
 
         case fence:
@@ -427,42 +452,61 @@ struct Cpu
                         switch (funct7)
                         {
                         case Funct7.ecall:
+                            switch (mode)
+                            {
+                            case Mode.User:
+                                return Ret(CpuException(ExceptionCode.EnvironmentCallFromUMode, pc));
+                            case Mode.Supervisor:
+                                return Ret(CpuException(ExceptionCode.EnvironmentCallFromSMode, pc));
+                            case Mode.Machine:
+                                return Ret(CpuException(ExceptionCode.EnvironmentCallFromMMode, pc));
+                            default:
+                                return Ret(CpuException(ExceptionCode.IllegalInstruction, inst));
+                            }
                         case Funct7.ebreak:
+                            return Ret(CpuException(ExceptionCode.Breakpoint, pc));
                         case Funct7.sfence_vma:
+                            {
+                                // Not implemented, no out-of-order execution
+                            }
+                            break;
                         default:
-                            break;
+                            return Ret(CpuException(ExceptionCode.IllegalInstruction, inst));
                         case Funct7.sret:
-                            with (CsrName) with (CsrMask) if (rs2 == 0x2)
-                            {
-                                auto sstatus = this.csr.load(SSTATUS);
-                                this.mode = cast(Mode)((sstatus & MASK_SPP) >> 8);
-                                auto spie = (sstatus & MASK_SPIE) >> 5;
-                                sstatus = (sstatus & ~MASK_SIE) | (spie << 1);
-                                sstatus |= MASK_SPIE;
-                                sstatus &= ~MASK_SPP;
-                                this.csr.store(SSTATUS, sstatus);
-                                auto newpc = this.csr.load(SEPC) & ~0b11;
-                                return newpc;
-                            }
-                            break;
+                            with (CsrName) with (CsrMask)
+                                if (rs2 == 0x2)
+                                {
+                                    auto sstatus = this.csr.load(SSTATUS);
+                                    this.mode = cast(Mode)((sstatus & MASK_SPP) >> 8);
+                                    auto spie = (sstatus & MASK_SPIE) >> 5;
+                                    sstatus = (sstatus & ~MASK_SIE) | (spie << 1);
+                                    sstatus |= MASK_SPIE;
+                                    sstatus &= ~MASK_SPP;
+                                    this.csr.store(SSTATUS, sstatus);
+                                    auto newpc = this.csr.load(SEPC) & ~0b11;
+                                    return Ret(newpc);
+                                }
+                            return Ret(CpuException(ExceptionCode.IllegalInstruction, inst));
                         case Funct7.mret:
-                            with (CsrName) with (CsrMask) if (rs2 == 0x2)
-                            {
-                                auto mstatus = this.csr.load(MSTATUS);
-                                this.mode = cast(Mode)((mstatus & MASK_MPP) >> 11);
-                                auto mpie = (mstatus & MASK_MPIE) >> 7;
-                                mstatus = (mstatus & ~MASK_MIE) | (mpie << 3);
-                                mstatus |= MASK_MPIE;
-                                mstatus &= ~MASK_MPP;
-                                mstatus &= ~MASK_MPRV;
-                                this.csr.store(MSTATUS, mstatus);
-                                auto newpc = this.csr.load(MEPC) & ~0b11;
-                                return newpc;
-                            }
-                            break;
+                            with (CsrName) with (CsrMask)
+                                if (rs2 == 0x2)
+                                {
+                                    auto mstatus = this.csr.load(MSTATUS);
+                                    this.mode = cast(Mode)((mstatus & MASK_MPP) >> 11);
+                                    auto mpie = (mstatus & MASK_MPIE) >> 7;
+                                    mstatus = (mstatus & ~MASK_MIE) | (mpie << 3);
+                                    mstatus |= MASK_MPIE;
+                                    mstatus &= ~MASK_MPP;
+                                    mstatus &= ~MASK_MPRV;
+                                    this.csr.store(MSTATUS, mstatus);
+                                    auto newpc = this.csr.load(MEPC) & ~0b11;
+                                    return Ret(newpc);
+                                }
+                            return Ret(CpuException(ExceptionCode.IllegalInstruction, inst));
                         }
                     }
                     break;
+
                 case csrrw:
                     {
                         auto t = this.csr.load(csr);
@@ -506,7 +550,7 @@ struct Cpu
                     break;
 
                 default:
-                    break;
+                    return Ret(CpuException(ExceptionCode.IllegalInstruction, inst));
                 }
             }
             break;
@@ -524,15 +568,27 @@ struct Cpu
                         if (funct3 == Funct3.amo32)
                         {
                             auto t = this.load(regs[rs1], 32);
-                            this.store(regs[rs1], 32, t + regs[rs2]);
-                            regs[rd] = cast(long) cast(int) t;
+                            if (t.ok)
+                            {
+                                this.store(regs[rs1], 32, t.value + regs[rs2]);
+                                regs[rd] = cast(long) cast(int) t.value;
+                            }
+                            else
+                                return t;
                         }
                         else if (funct3 == Funct3.amo64)
                         {
                             auto t = this.load(regs[rs1], 64);
-                            this.store(regs[rs1], 64, t + regs[rs2]);
-                            regs[rd] = t;
+                            if (t.ok)
+                            {
+                                this.store(regs[rs1], 64, t.value + regs[rs2]);
+                                regs[rd] = t.value;
+                            }
+                            else
+                                return t;
                         }
+                        else
+                            return Ret(CpuException(ExceptionCode.IllegalInstruction, inst));
                     }
                     break;
                 case amoswap:
@@ -540,31 +596,86 @@ struct Cpu
                         if (funct3 == Funct3.amo32)
                         {
                             auto t = this.load(regs[rs1], 32);
-                            this.store(regs[rs1], 32, regs[rs2]);
-                            regs[rd] = cast(long) cast(int) t;
+                            if (t.ok)
+                            {
+                                this.store(regs[rs1], 32, regs[rs2]);
+                                regs[rd] = cast(long) cast(int) t.value;
+                            }
+                            else
+                                return t;
                         }
                         else if (funct3 == Funct3.amo64)
                         {
                             auto t = this.load(regs[rs1], 64);
-                            this.store(regs[rs1], 64, regs[rs2]);
-                            regs[rd] = t;
+                            if (t.ok)
+                            {
+                                this.store(regs[rs1], 64, regs[rs2]);
+                                regs[rd] = t.value;
+                            }
+                            else
+                                return t;
                         }
+                        else
+                            return Ret(CpuException(ExceptionCode.IllegalInstruction, inst));
                     }
                     break;
                 default:
-                    break;
+                    return Ret(CpuException(ExceptionCode.IllegalInstruction, inst));
                 }
             }
             break;
 
         default:
-            {
-                writeln(format("Unknown Opcode: 0x%02x in Instruction 0x%08x at Address 0x%08x", opcode, inst, pc));
-                return 0;
-            }
+            return Ret(CpuException(ExceptionCode.IllegalInstruction, inst));
         }
 
-        return pc + 4;
+        return Ret(pc + 4);
+    }
+
+    void handleException(CpuException e)
+    {
+        with (CsrName) with (CsrMask)
+        {
+            auto pc = this.pc;
+            auto mode = this.mode;
+            auto cause = e.exception;
+            auto trapInSMode = mode <= Mode.Supervisor && this.csr.isMeDelegated(cause);
+
+            if (trapInSMode)
+                this.mode = Mode.Supervisor;
+            else
+                this.mode = Mode.Machine;
+
+            import std.typecons : tuple;
+
+            auto result = trapInSMode
+                ? tuple(SSTATUS, STVEC, SCAUSE, STVAL, SEPC, MASK_SPIE, 5, MASK_SIE, 1, MASK_SPP, 8) 
+                : tuple(MSTATUS, MTVEC, MCAUSE, MTVAL, MEPC, MASK_MPIE, 7, MASK_MIE, 3, MASK_MPP, 11);
+
+            auto STATUS = result[0];
+            auto TVEC = result[1];
+            auto CAUSE = result[2];
+            auto TVAL = result[3];
+            auto EPC = result[4];
+            auto MASK_PIE = result[5];
+            auto pie_i = result[6];
+            auto MASK_IE = result[7];
+            auto ie_i = result[8];
+            auto MASK_PP = result[9];
+            auto pp_i = result[10];
+
+            this.pc = this.csr.load(TVEC) & ~0b11;
+            this.csr.store(EPC, pc);
+            this.csr.store(CAUSE, cause);
+            this.csr.store(TVAL, e.value);
+
+            auto status = this.csr.load(STATUS);
+            auto ie = (status & MASK_IE) >> ie_i;
+            status = (status & ~MASK_PIE) | (ie << pie_i);
+            status &= ~MASK_IE;
+            status = (status & ~MASK_PP) | (mode << pp_i);
+            this.csr.store(STATUS, status);
+        }
     }
 
     void dumpRegisters()

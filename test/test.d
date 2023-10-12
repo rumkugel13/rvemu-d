@@ -2,8 +2,9 @@ module test;
 
 import std.stdio : writeln;
 import std.string : format;
+import std.conv : to;
 
-import cpu, dram;
+import cpu, dram, csr;
 
 static void run(string name, ubyte[] data, ulong[ubyte] regs, ulong pc = 0, ulong[ulong] csrs = null)
 {
@@ -12,13 +13,36 @@ static void run(string name, ubyte[] data, ulong[ubyte] regs, ulong pc = 0, ulon
 
     while (true)
     {
-        auto inst = cpu.fetch();
+        uint inst;
+        auto f = cpu.fetch();
+        if (f.ok)
+            inst = cast(uint) f.value;
+        else
+        {
+            auto exception = f.exception;
+            // cpu.handleException(exception);
+            if (exception.isFatal())
+            {
+                // writeln(exception);
+                break;
+            }
+        }
 
-        // break on zero inst
-        if (!inst)
-            break;
+        ulong newpc;
+        auto e = cpu.execute(inst);
+        if (e.ok)
+            newpc = e.value;
+        else
+        {
+            auto exception = e.exception;
+            // cpu.handleException(exception);
+            if (exception.isFatal())
+            {
+                // writeln(exception);
+                break;
+            }
+        }
 
-        auto newpc = cpu.execute(inst);
         cpu.pc = newpc;
         if (newpc == pc)
             break;
@@ -43,8 +67,8 @@ static void run(string name, ubyte[] data, ulong[ubyte] regs, ulong pc = 0, ulon
     {
         foreach (csr, val; csrs)
         {
-            assert(cpu.csr.load(csr) == val, format("Csr 0x%x expected: 0x%x, actual: 0x%x", csr, val, cpu.csr.load(
-                    csr)));
+            assert(cpu.csr.load(csr) == val, format("Csr %s expected: 0x%x, actual: 0x%x", (
+                    cast(CsrName) csr).to!string, val, cpu.csr.load(csr)));
         }
     }
 }

@@ -51,12 +51,12 @@ enum CsrMask : ulong
     MASK_SSTATUS = MASK_SIE | MASK_SPIE | MASK_UBE | MASK_SPP | MASK_FS
         | MASK_XS | MASK_SUM | MASK_MXR | MASK_UXL | MASK_SD,
 
-    MASK_SSIP = 1 << 1,
-    MASK_MSIP = 1 << 3,
-    MASK_STIP = 1 << 5,
-    MASK_MTIP = 1 << 7,
-    MASK_SEIP = 1 << 9,
-    MASK_MEIP = 1 << 11,
+        MASK_SSIP = 1 << 1,
+        MASK_MSIP = 1 << 3,
+        MASK_STIP = 1 << 5,
+        MASK_MTIP = 1 << 7,
+        MASK_SEIP = 1 << 9,
+        MASK_MEIP = 1 << 11,
 }
 
 struct Csr
@@ -95,6 +95,16 @@ struct Csr
             csrs[addr] = value;
             break;
         }
+    }
+
+    bool isMeDelegated(ulong cause)
+    {
+        return ((csrs[CsrName.MEDELEG] >> cast(uint) cause) & 1) == 1;
+    }
+
+    bool isMiDelegated(ulong cause)
+    {
+        return ((csrs[CsrName.MIDELEG] >> cast(uint) cause) & 1) == 1;
     }
 
     void dumpCsrs()
