@@ -16,11 +16,11 @@ const auto RVABI = [
     "s8", "s9", "s10", "s11", "t3", "t4", "t5", "t6"
 ];
 
-enum Mode
+enum Mode : ulong
 {
-    User = 0x00,
-    Supervisor = 0x01,
-    Machine = 0x11,
+    User = 0b00,
+    Supervisor = 0b01,
+    Machine = 0b11,
 }
 
 struct Cpu
