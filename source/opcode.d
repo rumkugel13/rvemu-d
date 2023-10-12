@@ -15,6 +15,7 @@ enum Opcode : uint
     branch = 0x63,
     fence = 0xff,
     system = 0x73,
+    amo = 0x2f,
 }
 
 enum Funct3 : uint
@@ -91,6 +92,9 @@ enum Funct3 : uint
     divuw = divu,
     remw = rem,
     remuw = remu,
+
+    amo32 = 0x2,
+    amo64 = 0x3,
 }
 
 enum Funct7 : uint
@@ -108,4 +112,19 @@ enum Funct7 : uint
     ecall = 0x0,
     ebreak = 0x1,
     sfence_vma = 0x9,
+}
+
+enum Funct5 : uint
+{
+    amoadd = 0x0,
+    amoswap = 0x1,
+    lr = 0x2,
+    sc = 0x3,
+    amoxor = 0x4,
+    amoand = 0xc,
+    amoor = 0x8,
+    amomin = 0x10,
+    amomax = 0x14,
+    amominu = 0x18,
+    amomaxu = 0x1c,
 }

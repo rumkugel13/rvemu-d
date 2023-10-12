@@ -477,6 +477,52 @@ struct Cpu
                 }
             }
             break;
+        case amo:
+            {
+                // note: not really atomic, but that doesn't matter on single threaded execution
+                auto funct5 = (funct7 & 0b1111100) >> 2;
+                auto aq = (funct7 & 0b10) >> 1;
+                auto rl = (funct7 & 0b1);
+
+                with (Funct5) switch (funct5)
+                {
+                case amoadd:
+                    {
+                        if (funct3 == Funct3.amo32)
+                        {
+                            auto t = this.load(regs[rs1], 32);
+                            this.store(regs[rs1], 32, t + regs[rs2]);
+                            regs[rd] = cast(long) cast(int) t;
+                        }
+                        else if (funct3 == Funct3.amo64)
+                        {
+                            auto t = this.load(regs[rs1], 64);
+                            this.store(regs[rs1], 64, t + regs[rs2]);
+                            regs[rd] = t;
+                        }
+                    }
+                    break;
+                case amoswap:
+                    {
+                        if (funct3 == Funct3.amo32)
+                        {
+                            auto t = this.load(regs[rs1], 32);
+                            this.store(regs[rs1], 32, regs[rs2]);
+                            regs[rd] = cast(long) cast(int) t;
+                        }
+                        else if (funct3 == Funct3.amo64)
+                        {
+                            auto t = this.load(regs[rs1], 64);
+                            this.store(regs[rs1], 64, regs[rs2]);
+                            regs[rd] = t;
+                        }
+                    }
+                    break;
+                default:
+                    break;
+                }
+            }
+            break;
 
         default:
             {
