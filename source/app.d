@@ -12,6 +12,8 @@ void main(string[] args)
     {
         path = "test/add-addi.bin";
         path = "test/fib.bin";
+        path = "test/helloworld.bin";
+        // path = "test/echoback.bin";
         // writeln("Usage: \n\trvemu <filename>");
         // return;
     }
