@@ -62,8 +62,12 @@ struct Uart
                     uart[UART_LSR].atomicOp!"|="(MASK_UART_LSR_RX);
                     mut.unlock();
                 }
+                else
+                {
+                    break;
+                }
             }
-            catch(ErrnoException e)
+            catch(Exception e)
             {
                 writeln(e);
                 break;
