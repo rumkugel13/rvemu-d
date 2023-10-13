@@ -38,12 +38,10 @@ struct Uart
         this.cond = new shared Condition(this.mut);
         this.interrupt = false;
 
-        shared ubyte[] readByte = [0];
-        spawn(&run, this.uart, this.mut, this.cond, this.interrupt, readByte);
+        spawn(&run, this.uart, this.mut, this.cond, this.interrupt);
     }
 
-    static void run(shared ubyte[] uart, shared Mutex mut, shared Condition cond, shared bool interrupt, 
-        shared ubyte[] readByte)
+    static void run(shared ubyte[] uart, shared Mutex mut, shared Condition cond, shared bool interrupt)
     {
         import std.exception;
         while(true)
