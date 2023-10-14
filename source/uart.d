@@ -2,7 +2,6 @@ module uart;
 
 import core.sync.condition;
 import core.sync.mutex;
-import std.typecons : SafeRefCounted, safeRefCounted, Tuple, tuple;
 import core.atomic;
 import std.concurrency : spawn;
 import std.conv : to;
@@ -43,33 +42,24 @@ struct Uart
 
     static void run(shared ubyte[] uart, shared Mutex mut, shared Condition cond, shared bool interrupt)
     {
-        import std.exception;
-        while(true)
+        while(!stdin.eof)
         {
-            try
+            char c;
+            auto read = readf!"%c"(c);
+            if (read > 0)
             {
-                char c;
-                auto read = readf!"%c"(c);
-                if (read > 0)
-                {
-                    mut.lock();
-                    
-                    while ((uart[UART_LSR] & MASK_UART_LSR_RX) == 1)
-                        cond.wait();
+                mut.lock();
+                
+                while ((uart[UART_LSR] & MASK_UART_LSR_RX) == 1)
+                    cond.wait();
 
-                    uart[UART_RHR] = c;
-                    interrupt.atomicStore!(MemoryOrder.rel)(true);
-                    uart[UART_LSR].atomicOp!"|="(MASK_UART_LSR_RX);
-                    mut.unlock();
-                }
-                else
-                {
-                    break;
-                }
+                uart[UART_RHR] = c;
+                interrupt.atomicStore!(MemoryOrder.rel)(true);
+                uart[UART_LSR].atomicOp!"|="(MASK_UART_LSR_RX);
+                mut.unlock();
             }
-            catch(Exception e)
+            else
             {
-                writeln(e);
                 break;
             }
         }
