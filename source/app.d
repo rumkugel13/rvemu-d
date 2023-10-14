@@ -3,7 +3,7 @@ import std.stdio;
 import std.stdio : writeln;
 import std.file : read;
 import cpu;
-import exception;
+import exception, interrupt;
 
 void main(string[] args)
 {
@@ -43,10 +43,9 @@ void main(string[] args)
             continue;
         }
 
-        ulong newpc;
         auto e = cpu.execute(inst);
         if (e.ok)
-            newpc = e.value;
+            cpu.pc = e.value;
         else
         {
             auto exception = e.exception;
@@ -58,7 +57,11 @@ void main(string[] args)
             }
         }
 
-        cpu.pc = newpc;
+        auto pending = cpu.checkPendingInterrupt();
+        if (pending)
+        {
+            cpu.handleInterrupt(cast(InterruptCode)pending);
+        }
 
         // avoid infinite loops / break on error
         if (cpu.pc == 0)

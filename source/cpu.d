@@ -7,7 +7,7 @@ import std.string : format;
 import opcode;
 import bus;
 import csr;
-import exception;
+import exception, interrupt;
 
 const auto RVABI = [
     "zero", "ra", "sp", "gp", "tp", "t0", "t1", "t2",
@@ -675,6 +675,110 @@ struct Cpu
             status &= ~MASK_IE;
             status = (status & ~MASK_PP) | (mode << pp_i);
             this.csr.store(STATUS, status);
+        }
+    }
+
+    void handleInterrupt(InterruptCode code)
+    {
+        with (CsrName) with (CsrMask)
+        {
+            auto pc = this.pc;
+            auto mode = this.mode;
+            auto cause = code;
+
+            auto trapInSMode = mode <= Mode.Supervisor && this.csr.isMiDelegated(cause);
+
+            import std.typecons : tuple;
+
+            auto result = trapInSMode
+                ? tuple(SSTATUS, STVEC, SCAUSE, STVAL, SEPC, MASK_SPIE, 5, MASK_SIE, 1, MASK_SPP, 8) 
+                : tuple(MSTATUS, MTVEC, MCAUSE, MTVAL, MEPC, MASK_MPIE, 7, MASK_MIE, 3, MASK_MPP, 11);
+
+            auto STATUS = result[0];
+            auto TVEC = result[1];
+            auto CAUSE = result[2];
+            auto TVAL = result[3];
+            auto EPC = result[4];
+            auto MASK_PIE = result[5];
+            auto pie_i = result[6];
+            auto MASK_IE = result[7];
+            auto ie_i = result[8];
+            auto MASK_PP = result[9];
+            auto pp_i = result[10];
+
+            auto tvec = this.csr.load(TVEC);
+            auto tvecMode = tvec & 0b11;
+            auto tvecBase = tvec & ~0b11;
+
+            switch (tvecMode)
+            {
+                case 0: this.pc = tvecBase; break;
+                case 1: this.pc = tvecBase + cause << 2; break;
+                default: assert(0, "Unreachable");
+            }
+
+            this.csr.store(EPC, pc);
+            this.csr.store(CAUSE, cause);
+            this.csr.store(TVAL, 0);
+
+            auto status = this.csr.load(STATUS);
+            auto ie = (STATUS & MASK_IE) >> ie_i;
+            status = (status & ~MASK_PIE) | (ie << pie_i);
+            status &= ~MASK_IE;
+            status = (status & ~MASK_PP) | (mode << pp_i);
+            this.csr.store(STATUS, status);
+        }
+    }
+
+    ulong checkPendingInterrupt()
+    {
+        with (CsrName) with (CsrMask)
+        {
+            if (this.mode == Mode.Machine && (this.csr.load(MSTATUS) & MASK_MIE) == 0)
+                return 0;
+            if (this.mode == Mode.Supervisor && (this.csr.load(SSTATUS) & MASK_SIE) == 0)
+                return 0;
+
+            if (this.bus.uart.isInterrupting())
+            {
+                this.bus.store(PLIC_SCLAIM, 32, UART_IRQ);
+                this.csr.store(MIP, this.csr.load(MIP) | MASK_SEIP);
+            }
+
+            auto pending = this.csr.load(MIE) & this.csr.load(MIP);
+
+            if ((pending & MASK_MEIP) != 0)
+            {
+                this.csr.store(MIP, this.csr.load(MIP) & ~MASK_MEIP);
+                return InterruptCode.MachineExternalInterrupt;
+            }
+            if ((pending & MASK_MSIP) != 0)
+            {
+                this.csr.store(MIP, this.csr.load(MIP) & ~MASK_MSIP);
+                return InterruptCode.MachineSoftwareInterrupt;
+            }
+            if ((pending & MASK_MTIP) != 0)
+            {
+                this.csr.store(MIP, this.csr.load(MIP) & ~MASK_MTIP);
+                return InterruptCode.MachineTimerInterrupt;
+            }
+            if ((pending & MASK_SEIP) != 0)
+            {
+                this.csr.store(MIP, this.csr.load(MIP) & ~MASK_SEIP);
+                return InterruptCode.SupervisorExternalInterrupt;
+            }
+            if ((pending & MASK_SSIP) != 0)
+            {
+                this.csr.store(MIP, this.csr.load(MIP) & ~MASK_SSIP);
+                return InterruptCode.SupervisorSoftwareInterrupt;
+            }
+            if ((pending & MASK_STIP) != 0)
+            {
+                this.csr.store(MIP, this.csr.load(MIP) & ~MASK_STIP);
+                return InterruptCode.SupervisorTimerInterrupt;
+            }
+
+            return 0;
         }
     }
 
