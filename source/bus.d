@@ -6,6 +6,7 @@ public import dram;
 public import plic;
 public import clint;
 public import uart;
+public import virtio;
 
 struct Bus
 {
@@ -13,11 +14,13 @@ struct Bus
     Plic plic;
     Clint clint;
     Uart uart;
+    VirtioBlock virtioBlock;
 
-    this(ubyte[] code)
+    this(ubyte[] code, ubyte[] diskImage)
     {
         dram = Dram(code);
         uart.create();
+        virtioBlock = VirtioBlock(diskImage);
     }
 
     Ret load(ulong addr, ulong size)
@@ -28,6 +31,8 @@ struct Bus
             return plic.load(addr, size);
         else if (UART_BASE <= addr && addr <= UART_END)
             return uart.load(addr, size);
+        else if (VIRTIO_BASE <= addr && addr <= VIRTIO_END)
+            return virtioBlock.load(addr, size);
         else if (DRAM_BASE <= addr && addr <= DRAM_END)
             return dram.load(addr, size);
         else
@@ -42,6 +47,8 @@ struct Bus
             return plic.store(addr, size, value);
         else if (UART_BASE <= addr && addr <= UART_END)
             return uart.store(addr, size, value);
+        else if (VIRTIO_BASE <= addr && addr <= VIRTIO_END)
+            return virtioBlock.store(addr, size, value);
         else if (DRAM_BASE <= addr && addr <= DRAM_END)
             return dram.store(addr, size, value);
         else

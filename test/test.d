@@ -9,7 +9,7 @@ import cpu, dram, csr;
 static void run(string name, ubyte[] data, ulong[ubyte] regs, ulong pc = 0, ulong[ulong] csrs = null)
 {
     writeln("Testing ", name);
-    Cpu cpu = Cpu(data);
+    Cpu cpu = Cpu(data, []);
 
     while (true)
     {

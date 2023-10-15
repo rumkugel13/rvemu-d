@@ -8,13 +8,13 @@ import exception, interrupt;
 void main(string[] args)
 {
     string path;
-    if (args.length != 2)
+    if (args.length != 2 && args.length != 3)
     {
         path = "test/add-addi.bin";
         path = "test/fib.bin";
         path = "test/helloworld.bin";
         // path = "test/echoback.bin";
-        // writeln("Usage: \n\trvemu <filename>");
+        // writeln("Usage: \n\trvemu <filename> <(option) image>");
         // return;
     }
     else
@@ -23,7 +23,14 @@ void main(string[] args)
     }
 
     auto file = cast(ubyte[]) read(path);
-    auto cpu = Cpu(file);
+    ubyte[] diskImage;
+
+    if (args.length == 3)
+    {
+        diskImage ~= cast(ubyte[]) read(args[2]);
+    }
+
+    auto cpu = Cpu(file, diskImage);
 
     while (true)
     {

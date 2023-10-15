@@ -36,13 +36,13 @@ struct Cpu
     // Privilege Mode
     Mode mode;
 
-    this(ubyte[] code)
+    this(ubyte[] code, ubyte[] diskImage)
     in (code.length <= DRAM_SIZE)
     {
         regs[0] = 0;
         regs[2] = DRAM_END;
         pc = DRAM_BASE;
-        this.bus = Bus(code);
+        this.bus = Bus(code, diskImage);
         mode = Mode.Machine;
     }
 
@@ -744,6 +744,12 @@ struct Cpu
                 this.bus.store(PLIC_SCLAIM, 32, UART_IRQ);
                 this.csr.store(MIP, this.csr.load(MIP) | MASK_SEIP);
             }
+            else if (this.bus.virtioBlock.isInterrupting())
+            {
+                this.diskAccess();
+                this.bus.store(PLIC_SCLAIM, 32, VIRTIO_IRQ);
+                this.csr.store(MIP, this.csr.load(MIP) | MASK_SEIP);
+            }
 
             auto pending = this.csr.load(MIE) & this.csr.load(MIP);
 
@@ -780,6 +786,60 @@ struct Cpu
 
             return 0;
         }
+    }
+
+    void diskAccess()
+    {
+        auto descSize = VirtqDesc.sizeof;
+        auto descAddr = this.bus.virtioBlock.descAddr();
+        auto availAddr = descAddr + cast(ulong)DESC_NUM * descSize;
+        auto usedAddr = descAddr + PAGE_SIZE;
+
+        auto virtqAvail = cast(VirtqAvail*)availAddr;
+        auto virtqUsed = cast(VirtqUsed*)usedAddr;
+
+        auto idx = this.bus.load(cast(ulong)(&virtqAvail.idx), 16).value;
+        auto index = this.bus.load(cast(ulong)(&virtqAvail.ring[idx % DESC_NUM]), 16).value;
+
+        auto descAddr0 = descAddr + descSize * index;
+        auto virtqDesc0 = cast(VirtqDesc*)descAddr0;
+        auto next0 = this.bus.load(cast(ulong)(&virtqDesc0.next), 16).value;
+
+        auto reqAddr = this.bus.load(cast(ulong)(&virtqDesc0.addr), 64).value;
+        auto virtqBlkReq = cast(VirtioBlkRequest*)reqAddr;
+        auto blkSector = this.bus.load(cast(ulong)(&virtqBlkReq.sector), 64).value;
+        auto ioType = this.bus.load(cast(ulong)(&virtqBlkReq.ioType), 64).value;
+
+        auto descAddr1 = descAddr + descSize * next0;
+        auto virtqDesc1 = cast(VirtqDesc*)descAddr1;
+        auto addr1 = this.bus.load(cast(ulong)(&virtqDesc1.addr), 64).value;
+        auto len1 = this.bus.load(cast(ulong)(&virtqDesc1.len), 32).value;
+
+        switch (ioType)
+        {
+            case VIRTIO_BLK_T_OUT:
+            {
+                foreach (i; 0 .. len1)
+                {
+                    auto data = this.bus.load(addr1 + i, 8).value;
+                    this.bus.virtioBlock.writeDisk(blkSector * SECTOR_SIZE + i, data);
+                }
+            }
+            break;
+            case VIRTIO_BLK_T_IN:
+            {
+                foreach (i; 0 .. len1)
+                {
+                    auto data = this.bus.virtioBlock.readDisk(blkSector * SECTOR_SIZE + i);
+                    this.bus.store(addr1 + i, 8, data);
+                }
+            }
+            break;
+            default: assert(0, "Unreachable");
+        }
+
+        auto newId = this.bus.virtioBlock.getNewId();
+        this.bus.store(cast(ulong)(&virtqUsed.idx), 16, newId % 8);
     }
 
     void dumpRegisters()
