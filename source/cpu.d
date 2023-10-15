@@ -95,7 +95,7 @@ struct Cpu
         ];
 
         auto a = this.pageTable;
-        auto i = levels - 1;
+        long i = levels - 1;
         ulong pte;
 
         while (true)
@@ -506,8 +506,7 @@ struct Cpu
                     (cast(int)(
                         inst & 0x8000_0000) >> 19) |
                         ((inst >> 20) & 0x7e0) |
-                        (
-                            (inst >> 7) & 0x1e) |
+                        ((inst >> 7) & 0x1e) |
                         ((inst & 0x80) << 4));
 
                 with (Funct3) switch (funct3)
