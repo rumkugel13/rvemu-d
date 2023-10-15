@@ -65,7 +65,7 @@ struct Cpu
         else
         {
             auto pAddr = translate(addr, AccessType.Load).value;
-            return bus.load(pAddr, size);
+            return this.bus.load(pAddr, size);
         }
     }
 
@@ -78,7 +78,7 @@ struct Cpu
         else
         {
             auto pAddr = translate(addr, AccessType.Store).value;
-            return bus.store(pAddr, size, value);
+            return this.bus.store(pAddr, size, value);
         }
     }
 
@@ -182,7 +182,7 @@ struct Cpu
     Ret fetch()
     {
         auto pPc = translate(pc, AccessType.Instruction).value;
-        auto ret = bus.load(pPc, 32);
+        auto ret = this.bus.load(pPc, 32);
         if (ret.ok)
             return ret;
         else
