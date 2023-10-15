@@ -64,8 +64,8 @@ struct Cpu
         }
         else
         {
-            auto pAddr = translate(addr, AccessType.Load).value;
-            return this.bus.load(pAddr, size);
+            auto ret = translate(addr, AccessType.Load);
+            return ret.ok ? this.bus.load(ret.value, size) : ret;
         }
     }
 
@@ -77,8 +77,8 @@ struct Cpu
         }
         else
         {
-            auto pAddr = translate(addr, AccessType.Store).value;
-            return this.bus.store(pAddr, size, value);
+            auto ret = translate(addr, AccessType.Store);
+            return ret.ok ? this.bus.store(ret.value, size, value) : ret;
         }
     }
 
@@ -86,12 +86,12 @@ struct Cpu
     {
         if (!enablePaging)
             return Ret(addr);
-        
+
         auto levels = 3;
         auto vpn = [
-            (addr >> 12) & 0x1ff,   // L0
-            (addr >> 21) & 0x1ff,   // L1
-            (addr >> 30) & 0x1ff,   // L2
+            (addr >> 12) & 0x1ff, // L0
+            (addr >> 21) & 0x1ff, // L1
+            (addr >> 30) & 0x1ff, // L2
         ];
 
         auto a = this.pageTable;
@@ -110,9 +110,12 @@ struct Cpu
             {
                 final switch (accessType)
                 {
-                    case AccessType.Instruction: return Ret(CpuException(ExceptionCode.InstructionPageFault, addr));
-                    case AccessType.Load: return Ret(CpuException(ExceptionCode.LoadPageFault, addr));
-                    case AccessType.Store: return Ret(CpuException(ExceptionCode.StoreAMOPageFault, addr));
+                case AccessType.Instruction:
+                    return Ret(CpuException(ExceptionCode.InstructionPageFault, addr));
+                case AccessType.Load:
+                    return Ret(CpuException(ExceptionCode.LoadPageFault, addr));
+                case AccessType.Store:
+                    return Ret(CpuException(ExceptionCode.StoreAMOPageFault, addr));
                 }
             }
 
@@ -127,9 +130,12 @@ struct Cpu
             {
                 final switch (accessType)
                 {
-                    case AccessType.Instruction: return Ret(CpuException(ExceptionCode.InstructionPageFault, addr));
-                    case AccessType.Load: return Ret(CpuException(ExceptionCode.LoadPageFault, addr));
-                    case AccessType.Store: return Ret(CpuException(ExceptionCode.StoreAMOPageFault, addr));
+                case AccessType.Instruction:
+                    return Ret(CpuException(ExceptionCode.InstructionPageFault, addr));
+                case AccessType.Load:
+                    return Ret(CpuException(ExceptionCode.LoadPageFault, addr));
+                case AccessType.Store:
+                    return Ret(CpuException(ExceptionCode.StoreAMOPageFault, addr));
                 }
             }
         }
@@ -143,26 +149,29 @@ struct Cpu
         auto offset = addr & 0xfff;
         switch (i)
         {
-            case 0:
+        case 0:
             {
                 auto _ppn = (pte >> 10) & 0x0fff_ffff_ffff;
                 return Ret((_ppn << 12) | offset);
             }
-            case 1:
+        case 1:
             {
                 return Ret((ppn[2] << 30) | (ppn[1] << 21) | (vpn[0] << 12) | offset);
             }
-            case 2:
+        case 2:
             {
                 return Ret((ppn[2] << 30) | (vpn[1] << 21) | (vpn[0] << 12) | offset);
             }
-            default:
+        default:
             {
                 final switch (accessType)
                 {
-                    case AccessType.Instruction: return Ret(CpuException(ExceptionCode.InstructionPageFault, addr));
-                    case AccessType.Load: return Ret(CpuException(ExceptionCode.LoadPageFault, addr));
-                    case AccessType.Store: return Ret(CpuException(ExceptionCode.StoreAMOPageFault, addr));
+                case AccessType.Instruction:
+                    return Ret(CpuException(ExceptionCode.InstructionPageFault, addr));
+                case AccessType.Load:
+                    return Ret(CpuException(ExceptionCode.LoadPageFault, addr));
+                case AccessType.Store:
+                    return Ret(CpuException(ExceptionCode.StoreAMOPageFault, addr));
                 }
             }
         }
@@ -170,7 +179,8 @@ struct Cpu
 
     void updatePaging(ulong csrAddr)
     {
-        if (csrAddr != CsrName.SATP) return;
+        if (csrAddr != CsrName.SATP)
+            return;
 
         auto satp = this.csr.load(CsrName.SATP);
         this.pageTable = (satp & CsrMask.MASK_PPN) * PAGE_SIZE;
@@ -181,12 +191,12 @@ struct Cpu
 
     Ret fetch()
     {
-        auto pPc = translate(pc, AccessType.Instruction).value;
-        auto ret = this.bus.load(pPc, 32);
-        if (ret.ok)
-            return ret;
+        auto tret = translate(pc, AccessType.Instruction);
+        auto ret = this.bus.load(tret.value, 32);
+        if (tret.ok)
+            return ret.ok ? ret : Ret(CpuException(ExceptionCode.InstructionAccessFault, tret.value));
         else
-            return Ret(CpuException(ExceptionCode.InstructionAccessFault, pPc));
+            return tret;
     }
 
     // returns updated program counter
@@ -827,9 +837,14 @@ struct Cpu
 
             switch (tvecMode)
             {
-                case 0: this.pc = tvecBase; break;
-                case 1: this.pc = tvecBase + cause << 2; break;
-                default: assert(0, "Unreachable");
+            case 0:
+                this.pc = tvecBase;
+                break;
+            case 1:
+                this.pc = tvecBase + cause << 2;
+                break;
+            default:
+                assert(0, "Unreachable");
             }
 
             this.csr.store(EPC, pc);
@@ -907,32 +922,32 @@ struct Cpu
     {
         auto descSize = VirtqDesc.sizeof;
         auto descAddr = this.bus.virtioBlock.descAddr();
-        auto availAddr = descAddr + cast(ulong)DESC_NUM * descSize;
+        auto availAddr = descAddr + cast(ulong) DESC_NUM * descSize;
         auto usedAddr = descAddr + PAGE_SIZE;
 
-        auto virtqAvail = cast(VirtqAvail*)availAddr;
-        auto virtqUsed = cast(VirtqUsed*)usedAddr;
+        auto virtqAvail = cast(VirtqAvail*) availAddr;
+        auto virtqUsed = cast(VirtqUsed*) usedAddr;
 
         auto idx = this.bus.load(cast(ulong)(&virtqAvail.idx), 16).value;
         auto index = this.bus.load(cast(ulong)(&virtqAvail.ring[idx % DESC_NUM]), 16).value;
 
         auto descAddr0 = descAddr + descSize * index;
-        auto virtqDesc0 = cast(VirtqDesc*)descAddr0;
+        auto virtqDesc0 = cast(VirtqDesc*) descAddr0;
         auto next0 = this.bus.load(cast(ulong)(&virtqDesc0.next), 16).value;
 
         auto reqAddr = this.bus.load(cast(ulong)(&virtqDesc0.addr), 64).value;
-        auto virtqBlkReq = cast(VirtioBlkRequest*)reqAddr;
+        auto virtqBlkReq = cast(VirtioBlkRequest*) reqAddr;
         auto blkSector = this.bus.load(cast(ulong)(&virtqBlkReq.sector), 64).value;
         auto ioType = this.bus.load(cast(ulong)(&virtqBlkReq.ioType), 64).value;
 
         auto descAddr1 = descAddr + descSize * next0;
-        auto virtqDesc1 = cast(VirtqDesc*)descAddr1;
+        auto virtqDesc1 = cast(VirtqDesc*) descAddr1;
         auto addr1 = this.bus.load(cast(ulong)(&virtqDesc1.addr), 64).value;
         auto len1 = this.bus.load(cast(ulong)(&virtqDesc1.len), 32).value;
 
         switch (ioType)
         {
-            case VIRTIO_BLK_T_OUT:
+        case VIRTIO_BLK_T_OUT:
             {
                 foreach (i; 0 .. len1)
                 {
@@ -941,7 +956,7 @@ struct Cpu
                 }
             }
             break;
-            case VIRTIO_BLK_T_IN:
+        case VIRTIO_BLK_T_IN:
             {
                 foreach (i; 0 .. len1)
                 {
@@ -950,7 +965,8 @@ struct Cpu
                 }
             }
             break;
-            default: assert(0, "Unreachable");
+        default:
+            assert(0, "Unreachable");
         }
 
         auto newId = this.bus.virtioBlock.getNewId();
@@ -988,6 +1004,7 @@ struct Cpu
     void dumpPc()
     {
         import std.string : format;
+
         writeln(format("Program Counter: %x", pc));
     }
 }
