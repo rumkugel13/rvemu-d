@@ -23,6 +23,13 @@ enum Mode : ulong
     Machine = 0b11,
 }
 
+enum AccessType
+{
+    Instruction,
+    Load,
+    Store,
+}
+
 struct Cpu
 {
     // 32 64-bit Registers
@@ -35,6 +42,9 @@ struct Cpu
     Csr csr;
     // Privilege Mode
     Mode mode;
+
+    bool enablePaging;
+    ulong pageTable;
 
     this(ubyte[] code, ubyte[] diskImage)
     in (code.length <= DRAM_SIZE)
@@ -54,7 +64,8 @@ struct Cpu
         }
         else
         {
-            return bus.load(addr, size);
+            auto pAddr = translate(addr, AccessType.Load).value;
+            return bus.load(pAddr, size);
         }
     }
 
@@ -66,17 +77,116 @@ struct Cpu
         }
         else
         {
-            return bus.store(addr, size, value);
+            auto pAddr = translate(addr, AccessType.Store).value;
+            return bus.store(pAddr, size, value);
         }
+    }
+
+    Ret translate(ulong addr, AccessType accessType)
+    {
+        if (!enablePaging)
+            return Ret(addr);
+        
+        auto levels = 3;
+        auto vpn = [
+            (addr >> 12) & 0x1ff,   // L0
+            (addr >> 21) & 0x1ff,   // L1
+            (addr >> 30) & 0x1ff,   // L2
+        ];
+
+        auto a = this.pageTable;
+        auto i = levels - 1;
+        ulong pte;
+
+        while (true)
+        {
+            pte = this.bus.load(a + vpn[i] << 3, 64).value;
+
+            auto v = pte & 1;
+            auto r = (pte >> 1) & 1;
+            auto w = (pte >> 2) & 1;
+            auto x = (pte >> 3) & 1;
+            if (v == 0 || (r == 0 && w == 1))
+            {
+                final switch (accessType)
+                {
+                    case AccessType.Instruction: return Ret(CpuException(ExceptionCode.InstructionPageFault, addr));
+                    case AccessType.Load: return Ret(CpuException(ExceptionCode.LoadPageFault, addr));
+                    case AccessType.Store: return Ret(CpuException(ExceptionCode.StoreAMOPageFault, addr));
+                }
+            }
+
+            if (r == 1 || x == 1)
+                break;
+
+            i -= 1;
+            auto ppn = (pte >> 10) & 0x0fff_ffff_ffff;
+            a = ppn * PAGE_SIZE;
+
+            if (i < 0)
+            {
+                final switch (accessType)
+                {
+                    case AccessType.Instruction: return Ret(CpuException(ExceptionCode.InstructionPageFault, addr));
+                    case AccessType.Load: return Ret(CpuException(ExceptionCode.LoadPageFault, addr));
+                    case AccessType.Store: return Ret(CpuException(ExceptionCode.StoreAMOPageFault, addr));
+                }
+            }
+        }
+
+        auto ppn = [
+            (pte >> 10) & 0x1ff,
+            (pte >> 19) & 0x1ff,
+            (pte >> 28) & 0x03ff_ffff,
+        ];
+
+        auto offset = addr & 0xfff;
+        switch (i)
+        {
+            case 0:
+            {
+                auto _ppn = (pte >> 10) & 0x0fff_ffff_ffff;
+                return Ret((_ppn << 12) | offset);
+            }
+            case 1:
+            {
+                return Ret((ppn[2] << 30) | (ppn[1] << 21) | (vpn[0] << 12) | offset);
+            }
+            case 2:
+            {
+                return Ret((ppn[2] << 30) | (vpn[1] << 21) | (vpn[0] << 12) | offset);
+            }
+            default:
+            {
+                final switch (accessType)
+                {
+                    case AccessType.Instruction: return Ret(CpuException(ExceptionCode.InstructionPageFault, addr));
+                    case AccessType.Load: return Ret(CpuException(ExceptionCode.LoadPageFault, addr));
+                    case AccessType.Store: return Ret(CpuException(ExceptionCode.StoreAMOPageFault, addr));
+                }
+            }
+        }
+    }
+
+    void updatePaging(ulong csrAddr)
+    {
+        if (csrAddr != CsrName.SATP) return;
+
+        auto satp = this.csr.load(CsrName.SATP);
+        this.pageTable = (satp & CsrMask.MASK_PPN) * PAGE_SIZE;
+
+        auto mode = satp >> 60;
+        this.enablePaging = mode == 8; //Sv39
     }
 
     Ret fetch()
     {
-        auto ret = bus.load(pc, 32);
+        auto pPc = translate(pc, AccessType.Instruction).value;
+        auto ret = bus.load(pPc, 32);
         if (ret.ok)
             return ret;
         else
-            return Ret(CpuException(ExceptionCode.InstructionAccessFault, pc));
+            return Ret(CpuException(ExceptionCode.InstructionAccessFault, pPc));
     }
 
     // returns updated program counter
@@ -512,6 +622,7 @@ struct Cpu
                         auto t = this.csr.load(csr);
                         this.csr.store(csr, regs[rs1]);
                         regs[rd] = t;
+                        updatePaging(csr);
                     }
                     break;
                 case csrrs:
@@ -519,6 +630,7 @@ struct Cpu
                         auto t = this.csr.load(csr);
                         this.csr.store(csr, t | regs[rs1]);
                         regs[rd] = t;
+                        updatePaging(csr);
                     }
                     break;
                 case csrrc:
@@ -526,12 +638,14 @@ struct Cpu
                         auto t = this.csr.load(csr);
                         this.csr.store(csr, t & ~regs[rs1]);
                         regs[rd] = t;
+                        updatePaging(csr);
                     }
                     break;
                 case csrrwi:
                     {
                         regs[rd] = this.csr.load(csr);
                         this.csr.store(csr, uimm);
+                        updatePaging(csr);
                     }
                     break;
                 case csrrsi:
@@ -539,6 +653,7 @@ struct Cpu
                         auto t = this.csr.load(csr);
                         this.csr.store(csr, t | uimm);
                         regs[rd] = t;
+                        updatePaging(csr);
                     }
                     break;
                 case csrrci:
@@ -546,6 +661,7 @@ struct Cpu
                         auto t = this.csr.load(csr);
                         this.csr.store(csr, t & ~uimm);
                         regs[rd] = t;
+                        updatePaging(csr);
                     }
                     break;
 
@@ -868,5 +984,11 @@ struct Cpu
         }
 
         writeln(output);
+    }
+
+    void dumpPc()
+    {
+        import std.string : format;
+        writeln(format("Program Counter: %x", pc));
     }
 }

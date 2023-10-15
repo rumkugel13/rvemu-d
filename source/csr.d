@@ -57,6 +57,8 @@ enum CsrMask : ulong
         MASK_MTIP = 1 << 7,
         MASK_SEIP = 1 << 9,
         MASK_MEIP = 1 << 11,
+
+        MASK_PPN = (cast(ulong)1 << 44) - 1,
 }
 
 struct Csr

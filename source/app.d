@@ -7,13 +7,14 @@ import exception, interrupt;
 
 void main(string[] args)
 {
-    string path;
+    string path, diskPath;
     if (args.length != 2 && args.length != 3)
     {
-        path = "test/add-addi.bin";
-        path = "test/fib.bin";
-        path = "test/helloworld.bin";
+        // path = "test/add-addi.bin";
+        // path = "test/fib.bin";
+        // path = "test/helloworld.bin";
         // path = "test/echoback.bin";
+        path = "xv6-kernel.bin";
         // writeln("Usage: \n\trvemu <filename> <(option) image>");
         // return;
     }
@@ -27,8 +28,12 @@ void main(string[] args)
 
     if (args.length == 3)
     {
-        diskImage ~= cast(ubyte[]) read(args[2]);
+        diskPath = args[2];
     }
+    else {
+        diskPath = "xv6-fs.img";
+    }
+    diskImage ~= cast(ubyte[]) read(diskPath);
 
     auto cpu = Cpu(file, diskImage);
 
@@ -78,4 +83,5 @@ void main(string[] args)
     if (path == "test/fib.bin")
         assert(cpu.regs[15] == 0x37);
     cpu.dumpRegisters();
+    cpu.dumpPc();
 }
