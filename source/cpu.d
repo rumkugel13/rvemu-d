@@ -486,11 +486,9 @@ struct Cpu
         case auipc:
             {
                 auto imm = cast(long)(cast(int)(inst & 0xffff_f000));
-                pc += imm;
-                regs[rd] = pc;
-                return Ret(pc);
+                regs[rd] = pc + imm;
             }
-
+            break;
         case jal:
             {
                 regs[rd] = pc + 4;

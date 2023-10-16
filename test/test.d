@@ -485,7 +485,7 @@ unittest
 
     ulong[ubyte] expected = [16: 0x2000 + DRAM_BASE];
 
-    run("auipc", data, expected);
+    run("auipc", data, expected, 0x4 + DRAM_BASE);
 }
 
 unittest
