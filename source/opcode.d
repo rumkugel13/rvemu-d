@@ -13,7 +13,7 @@ enum Opcode : uint
     jal = 0x6f,
     jalr = 0x67,
     branch = 0x63,
-    fence = 0xff,
+    fence = 0x0f,
     system = 0x73,
     amo = 0x2f,
 }
