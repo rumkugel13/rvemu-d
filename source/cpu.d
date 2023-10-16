@@ -502,9 +502,9 @@ struct Cpu
             }
         case jalr:
             {
-                regs[rd] = pc + 4;
                 auto imm = cast(long)(cast(int)(inst & 0xfff0_0000) >> 20);
                 auto newpc = (imm + regs[rs1]) & ~0x1L;
+                regs[rd] = pc + 4;
                 return Ret(newpc);
             }
 
