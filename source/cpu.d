@@ -100,7 +100,7 @@ struct Cpu
 
         while (true)
         {
-            auto ret = this.bus.load(a + vpn[i] << 3, 64);
+            auto ret = this.bus.load(a + vpn[i] * 8, 64);
             if (ret.ok)
                 pte = ret.value;
             else 
