@@ -100,7 +100,11 @@ struct Cpu
 
         while (true)
         {
-            pte = this.bus.load(a + vpn[i] << 3, 64).value;
+            auto ret = this.bus.load(a + vpn[i] << 3, 64);
+            if (ret.ok)
+                pte = ret.value;
+            else 
+                return ret;
 
             auto v = pte & 1;
             auto r = (pte >> 1) & 1;
@@ -192,9 +196,11 @@ struct Cpu
     Ret fetch()
     {
         auto tret = translate(pc, AccessType.Instruction);
-        auto ret = this.bus.load(tret.value, 32);
         if (tret.ok)
-            return ret.ok ? ret : Ret(CpuException(ExceptionCode.InstructionAccessFault, tret.value));
+        {
+            auto ret = this.bus.load(tret.value, 32);
+            return ret.ok ? ret : Ret(CpuException(ExceptionCode.InstructionAccessFault, ret.value));
+        }
         else
             return tret;
     }
@@ -295,16 +301,25 @@ struct Cpu
                 with (Funct3) switch (funct3)
                 {
                 case sb:
-                    this.store(addr, 8, regs[rs2]);
+                    
+                    auto ret = this.store(addr, 8, regs[rs2]);
+                    if (!ret.ok) 
+                        return ret;
                     break;
                 case sh:
-                    this.store(addr, 16, regs[rs2]);
+                    auto ret = this.store(addr, 16, regs[rs2]);
+                    if (!ret.ok) 
+                        return ret;
                     break;
                 case sw:
-                    this.store(addr, 32, regs[rs2]);
+                    auto ret = this.store(addr, 32, regs[rs2]);
+                    if (!ret.ok) 
+                        return ret;
                     break;
                 case sd:
-                    this.store(addr, 64, regs[rs2]);
+                    auto ret = this.store(addr, 64, regs[rs2]);
+                    if (!ret.ok) 
+                        return ret;
                     break;
                 default:
                     return Ret(CpuException(ExceptionCode.IllegalInstruction, inst));
@@ -693,7 +708,9 @@ struct Cpu
                             auto t = this.load(regs[rs1], 32);
                             if (t.ok)
                             {
-                                this.store(regs[rs1], 32, t.value + regs[rs2]);
+                                auto ret = this.store(regs[rs1], 32, t.value + regs[rs2]);
+                                if (!ret.ok) 
+                                    return ret;
                                 regs[rd] = cast(long) cast(int) t.value;
                             }
                             else
@@ -704,7 +721,9 @@ struct Cpu
                             auto t = this.load(regs[rs1], 64);
                             if (t.ok)
                             {
-                                this.store(regs[rs1], 64, t.value + regs[rs2]);
+                                auto ret = this.store(regs[rs1], 64, t.value + regs[rs2]);
+                                if (!ret.ok) 
+                                    return ret;
                                 regs[rd] = t.value;
                             }
                             else
@@ -721,7 +740,9 @@ struct Cpu
                             auto t = this.load(regs[rs1], 32);
                             if (t.ok)
                             {
-                                this.store(regs[rs1], 32, regs[rs2]);
+                                auto ret = this.store(regs[rs1], 32, regs[rs2]);
+                                if (!ret.ok) 
+                                    return ret;
                                 regs[rd] = cast(long) cast(int) t.value;
                             }
                             else
@@ -732,7 +753,9 @@ struct Cpu
                             auto t = this.load(regs[rs1], 64);
                             if (t.ok)
                             {
-                                this.store(regs[rs1], 64, regs[rs2]);
+                                auto ret = this.store(regs[rs1], 64, regs[rs2]);
+                                if (!ret.ok) 
+                                    return ret;
                                 regs[rd] = t.value;
                             }
                             else
