@@ -959,7 +959,7 @@ struct Cpu
         auto reqAddr = this.bus.load(cast(ulong)(&virtqDesc0.addr), 64).value;
         auto virtqBlkReq = cast(VirtioBlkRequest*) reqAddr;
         auto blkSector = this.bus.load(cast(ulong)(&virtqBlkReq.sector), 64).value;
-        auto ioType = this.bus.load(cast(ulong)(&virtqBlkReq.ioType), 64).value;
+        auto ioType = this.bus.load(cast(ulong)(&virtqBlkReq.ioType), 32).value;
 
         auto descAddr1 = descAddr + descSize * next0;
         auto virtqDesc1 = cast(VirtqDesc*) descAddr1;
