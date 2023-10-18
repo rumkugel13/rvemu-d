@@ -862,7 +862,7 @@ struct Cpu
                 this.pc = tvecBase;
                 break;
             case 1:
-                this.pc = tvecBase + cause << 2;
+                this.pc = tvecBase + cause * 4;
                 break;
             default:
                 assert(0, "Unreachable");
