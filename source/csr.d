@@ -43,11 +43,11 @@ enum CsrMask : ulong
     MASK_TVM = 1 << 20,
     MASK_TW = 1 << 21,
     MASK_TSR = 1 << 22,
-    MASK_UXL = 0b11L << 32,
-    MASK_SXL = 0b11L << 34,
-    MASK_SBE = 1L << 36,
-    MASK_MBE = 1L << 37,
-    MASK_SD = 1L << 63,
+    MASK_UXL = 0b11uL << 32,
+    MASK_SXL = 0b11uL << 34,
+    MASK_SBE = 1uL << 36,
+    MASK_MBE = 1uL << 37,
+    MASK_SD = 1uL << 63,
     MASK_SSTATUS = MASK_SIE | MASK_SPIE | MASK_UBE | MASK_SPP | MASK_FS
         | MASK_XS | MASK_SUM | MASK_MXR | MASK_UXL | MASK_SD,
 
@@ -85,10 +85,10 @@ struct Csr
         with (CsrName) switch (addr)
         {
         case SIE:
-            csrs[MIE] = (csrs[MIE] & !csrs[MIDELEG]) | (value & csrs[MIDELEG]);
+            csrs[MIE] = (csrs[MIE] & ~csrs[MIDELEG]) | (value & csrs[MIDELEG]);
             break;
         case SIP:
-            csrs[MIP] = (csrs[MIP] & !csrs[MIDELEG]) | (value & csrs[MIDELEG]);
+            csrs[MIP] = (csrs[MIP] & ~csrs[MIDELEG]) | (value & csrs[MIDELEG]);
             break;
         case SSTATUS:
             csrs[MSTATUS] = (csrs[MSTATUS] & ~CsrMask.MASK_SSTATUS) | (value & CsrMask.MASK_SSTATUS);
