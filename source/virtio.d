@@ -71,7 +71,7 @@ struct VirtioBlkRequest
     ulong sector;
 }
 
-const auto MAX_BLOCK_QUEUE = 9999;
+const auto MAX_BLOCK_QUEUE = 1;
 
 struct VirtioBlock
 {
