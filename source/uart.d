@@ -37,10 +37,10 @@ struct Uart
         this.cond = new shared Condition(this.mut);
         this.interrupt = false;
 
-        spawn(&run, this.uart, this.mut, this.cond, this.interrupt);
+        spawn(&run, this.uart, this.mut, this.cond, &this.interrupt);
     }
 
-    static void run(shared ubyte[] uart, shared Mutex mut, shared Condition cond, shared bool interrupt)
+    static void run(shared ubyte[] uart, shared Mutex mut, shared Condition cond, shared (bool)* interrupt)
     {
         while(!stdin.eof)
         {
@@ -50,17 +50,13 @@ struct Uart
             {
                 mut.lock();
                 
-                while ((uart[UART_LSR] & MASK_UART_LSR_RX) == 1)
-                    cond.wait();
+                    while ((atomicLoad(uart[UART_LSR]) & MASK_UART_LSR_RX) == 1)
+                        cond.wait();
 
-                uart[UART_RHR] = c;
-                interrupt.atomicStore!(MemoryOrder.rel)(true);
-                uart[UART_LSR].atomicOp!"|="(MASK_UART_LSR_RX);
+                    (uart[UART_RHR]).atomicStore(cast(char)c);
+                    atomicStore!(MemoryOrder.rel)(*interrupt, true);
+                    (uart[UART_LSR]).atomicOp!"|="(MASK_UART_LSR_RX);
                 mut.unlock();
-            }
-            else
-            {
-                break;
             }
         }
     }
@@ -119,7 +115,7 @@ struct Uart
 
     bool isInterrupting()
     {
-        atomicExchange!(MemoryOrder.acq)(&this.interrupt, false);
-        return this.interrupt;
+        auto val = atomicExchange!(MemoryOrder.acq)(&this.interrupt, false);
+        return val;
     }
 }
