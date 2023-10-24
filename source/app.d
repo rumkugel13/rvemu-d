@@ -74,11 +74,12 @@ void main(string[] args)
         {
             cpu.handleInterrupt(cast(InterruptCode)pending);
         }
-
     }
 
     if (path == "test/fib.bin")
         assert(cpu.regs[15] == 0x37);
-    cpu.dumpRegisters();
+
     cpu.dumpPc();
+    cpu.dumpRegisters();
+    cpu.csr.dumpCsrs();
 }
