@@ -75,9 +75,6 @@ void main(string[] args)
             cpu.handleInterrupt(cast(InterruptCode)pending);
         }
 
-        // avoid infinite loops / break on error
-        if (cpu.pc == 0)
-            break;
     }
 
     if (path == "test/fib.bin")
