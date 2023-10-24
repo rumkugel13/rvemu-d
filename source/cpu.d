@@ -356,10 +356,13 @@ struct Cpu
                     regs[rd] = regs[rs1] << shamt;
                     break;
                 case srli | srai:
-                    if (funct7)
+                    funct7 &= ~1uL; // note: in rv64i mode the last bit of funct7 is used in shamt
+                    if (funct7 == Funct7.srai)
                         regs[rd] = cast(long) regs[rs1] >> shamt;
-                    else
+                    else if (funct7 == Funct7.srli)
                         regs[rd] = regs[rs1] >>> shamt;
+                    else
+                        return Ret(CpuException(ExceptionCode.IllegalInstruction, inst));
                     break;
                 default:
                     return Ret(CpuException(ExceptionCode.IllegalInstruction, inst));
@@ -481,10 +484,12 @@ struct Cpu
                     regs[rd] = cast(long) cast(int)(regs[rs1] << shamt);
                     break;
                 case srliw | sraiw:
-                    if (funct7)
-                        regs[rd] = cast(long) cast(int)(regs[rs1] >> shamt);
-                    else
+                    if (funct7 == Funct7.srai)
+                        regs[rd] = cast(long) (cast(int)regs[rs1] >> shamt);
+                    else if (funct7 == Funct7.srli)
                         regs[rd] = cast(long) cast(int)(regs[rs1] >>> shamt);
+                    else
+                        return Ret(CpuException(ExceptionCode.IllegalInstruction, inst));
                     break;
                 default:
                     return Ret(CpuException(ExceptionCode.IllegalInstruction, inst));
